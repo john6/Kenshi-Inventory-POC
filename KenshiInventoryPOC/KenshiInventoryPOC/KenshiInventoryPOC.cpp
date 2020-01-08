@@ -116,6 +116,7 @@ private:
 	void PlaceItemInBoolArray(int xCoord, int yCoord, Item item) {
 		int itemWidth = item.GetWidth();
 		int itemHeight = item.GetHeight();
+		//need to check item index if item is true or else not place it
 		for (int i = 0; i < item.GetHeight(); i++) {
 			for (int j = 0; j < item.GetWidth(); j++) {
 				if (i == 0 || j == 0 || i == itemHeight - 1 || j == itemWidth - 1)
@@ -235,7 +236,7 @@ private:
 	}
 
 public:
-	Backpack(int inputHeight = 10, int inputWidth = 8)
+	Backpack(int inputWidth = 8, int inputHeight = 10)
 	{
 		if (inputHeight <= 0 || inputWidth <= 0) { throw std::invalid_argument("Error: May not initialize a Backpack with non=positive dimensions\n"); }
 		else {
@@ -289,37 +290,16 @@ public:
 
 int main()
 {
-	Item testItem1 = Item("testItem1", 1, 1);
-	Item testItem2 = Item("testItem2", 2, 1);
-	Item testItem3 = Item("testItem3", 3, 3);
-	Item testItem4 = Item("testItem4", 7, 3);
-	Item testItem5 = Item("testItem5", 4, 4);
-	Item testItem6 = Item("testItem6", 5, 5);
-	Item testItem7 = Item("testItem7", 12, 1);
-	Item testItem8 = Item("testItem8", 4, 8);
-	Item testItem9 = Item("testItem9", 8, 4);
-
-
-
-	//Testing the sort function
-	std::cout << "\n Testing the sort function \n";
-	Backpack testBackpack7 = Backpack(20, 20);
-	testBackpack7.AddItem(testItem1);
-	testBackpack7.AddItem(testItem2);
-
-	testBackpack7.AddItem(testItem3);
-	testBackpack7.AddItem(testItem4);
-	testBackpack7.AddItem(testItem5);
-	testBackpack7.AddItem(testItem6);
-	testBackpack7.AddItem(testItem7);
-	testBackpack7.AddItem(testItem8);
-	testBackpack7.AddItem(testItem9);
-	testBackpack7.DisplayInv();
-	//testBackpack7.FitItemsInPack();
-	testBackpack7.DisplayInv();
-
-
-
+	/*
+	Item testItemA = Item("A", 1, 1);
+	Item testItemB = Item("B", 2, 1);
+	Item testItemC = Item("C", 3, 3);
+	Item testItemD = Item("D", 7, 3);
+	Item testItemE = Item("E", 4, 4);
+	Item testItemF = Item("F", 5, 5);
+	Item testItemG = Item("G", 12, 1);
+	Item testItemH = Item("H", 4, 8);
+	Item testItemI = Item("I", 8, 4);
 
 	//Inventory display test 1
 	std::cout << "\n Inventory display test 1 \n";
@@ -336,32 +316,83 @@ int main()
 	//Item add and display test
 	std::cout << "\n Item add and display test \n";
 	Backpack testBackpack3 = Backpack(20, 20);
-	testBackpack3.AddItem(testItem1);
+	testBackpack3.AddItem(testItemA);
 	testBackpack3.DisplayInv();
 
 	//Adding two items display test
 	std::cout << "\n Adding two items display test \n";
 	Backpack testBackpack4 = Backpack(20, 20);
-	testBackpack4.AddItem(testItem3);
-	testBackpack4.AddItem(testItem4);
+	testBackpack4.AddItem(testItemC);
+	testBackpack4.AddItem(testItemD);
 	testBackpack4.DisplayInv();
 
 	//adding items that need to go under firsts ones
 	std::cout << "\n adding items that need to go under firsts ones \n";
 	Backpack testBackpack5 = Backpack(20, 20);
-	testBackpack5.AddItem(testItem5);
-	testBackpack5.AddItem(testItem6);
-	testBackpack5.AddItem(testItem7);
-	testBackpack5.AddItem(testItem1);
-	testBackpack5.AddItem(testItem2);
-	testBackpack5.AddItem(testItem3);
+	testBackpack5.AddItem(testItemE);
+	testBackpack5.AddItem(testItemF);
+	testBackpack5.AddItem(testItemG);
+	testBackpack5.AddItem(testItemA);
+	testBackpack5.AddItem(testItemB);
+	testBackpack5.AddItem(testItemC);
 	testBackpack5.DisplayInv();
 
 	//Checking to ensure new border printing is setting width and height correctly
 	std::cout << "\n Checking to ensure new border printing is setting width and height correctly \n";
 	Backpack testBackpack6 = Backpack(20, 20);
-	testBackpack6.AddItem(testItem8);
-	testBackpack6.AddItem(testItem9);
+	testBackpack6.AddItem(testItemH);
+	testBackpack6.AddItem(testItemI);
 	testBackpack6.DisplayInv();
 
+	//Testing the sort function
+	std::cout << "\n Testing the sort function \n";
+	Backpack testBackpack7 = Backpack(20, 20);
+	testBackpack7.AddItem(testItemA);
+	testBackpack7.AddItem(testItemB);
+
+	testBackpack7.AddItem(testItemC);
+	testBackpack7.AddItem(testItemD);
+	testBackpack7.AddItem(testItemE);
+	testBackpack7.AddItem(testItemF);
+	testBackpack7.AddItem(testItemG);
+	testBackpack7.AddItem(testItemH);
+	testBackpack7.AddItem(testItemI);
+	testBackpack7.DisplayInv();
+	//testBackpack7.FitItemsInPack();
+	testBackpack7.DisplayInv();
+	*/
+
+	//Testing Kenshi Item and backpack sizes
+	std::cout << "\n Testing Kenshi Item and backpack sizes \n";
+	Item itemA1 = Item("A1", 4, 6);
+	Item itemA2 = Item("A2", 4, 6);
+	Item itemB1 = Item("B1", 5, 4);
+	Item itemB2 = Item("B2", 5, 4);
+	Item itemC1 = Item("C1", 2, 6);
+	Item itemD1 = Item("D1", 4, 2);
+	Item itemD2 = Item("D2", 4, 2);
+	Item itemE1 = Item("E1", 2, 4);
+	Item itemF1 = Item("F1", 1, 2);
+	Item itemF2 = Item("F2", 1, 2);
+	Item itemG1 = Item("G1", 3, 1);
+	Item itemG2 = Item("G2", 3, 1);
+	Item itemG3 = Item("G3", 3, 1);
+	Item itemG4 = Item("G4", 3, 1);
+
+	Backpack kenshiBackpack = Backpack(10, 14);
+	kenshiBackpack.AddItem(itemA1);
+	kenshiBackpack.AddItem(itemA2);
+	kenshiBackpack.AddItem(itemB1);
+	kenshiBackpack.AddItem(itemB2);
+	//kenshiBackpack.AddItem(itemC1);
+	//kenshiBackpack.AddItem(itemD1);
+	//kenshiBackpack.AddItem(itemD2);
+	//kenshiBackpack.AddItem(itemE1);
+	//kenshiBackpack.AddItem(itemF1);
+	//kenshiBackpack.AddItem(itemF2);
+	//kenshiBackpack.AddItem(itemG1);
+	//kenshiBackpack.AddItem(itemG2);
+	//kenshiBackpack.AddItem(itemG3);
+	//kenshiBackpack.AddItem(itemG4);
+	kenshiBackpack.DisplayInv();
 }
