@@ -10,23 +10,56 @@ using namespace std;
 class Item {
 private:
 	string name;
-	int height;
 	int width;
-
+	int height;
+	bool isPlaced;
+	int posX;
+	int posY;
 
 public:
-	//void SetHeight(int h) { height = h; }
-	int GetHeight() const { return height; }
-	int GetWidth() const { return width; }
 	string GetName() const { return name; }
+	int GetWidth() const { return width; }
+	int GetHeight() const { return height; }
+	bool IsPlaced() const { return isPlaced; }
+	int GetPosX() const { return posX; };
+	int GetPosY() const { return posY; };
+	
+	void SetPosition(int newX, int newY) {
+		isPlaced = true;
+		posX = newX;
+		posY = newY;
+	}
 
-	Item(string inputName = "null", int inputWidth = 0, int inputHeight = 0) {
+	Item(string inputName, int inputWidth, int inputHeight) {
 		name = inputName;
+		width = inputWidth;
+		height = inputHeight;
+		isPlaced = false;
+		posX = -1;
+		posY = -1;
+	}
+};
+
+class Rect {
+	//rect paritions should never have values changed. Only making class for organizational purposes, could just be a tuple.
+private:
+	int originX;
+	int originY;
+	int width;
+	int height;
+public:
+	int GetWidth() const { return width; }
+	int GetHeight() const { return height; }
+	int GetOriginX() const { return originX; };
+	int GetOriginY() const { return originY; };
+
+	Rect(int inputPosX, int inputPosY,int inputWidth, int inputHeight) {
+		originX = inputPosX;
+		originY = inputPosY;
 		width = inputWidth;
 		height = inputHeight;
 	}
 };
-
 
 class Backpack {
 private:
@@ -34,70 +67,10 @@ private:
 	int packWidth;
 	int size;
 	char* displayArray;
-	vector<tuple<bool, int, int, Item>> items;
-	//items[i] = (itemHasBeenPlaced, originX, originY, Item)
-	vector<tuple<int, int, int, int>> remainingRects;
-	//remainingRects[i] = (rectangleOriginX, rectangleOriginY, rectangleWidth, rectangleHeight)
-
-	//void UpdateDisplayArray() {
-	//	ClearBoolArray();
-	//	int currIndex = 0;
-	//	int currX = 0;
-	//	int currY = 0;
-	//	for (size_t i = 0; i < items.size(); i++) {
-	//		bool placeFound = false;
-	//		while (!placeFound)
-	//		{
-	//			Item currItem = get<3>(items[i]);
-	//			int currItemWidth = get<3>(items[i]).GetWidth();
-	//			int currItemHeight = get<3>(items[i]).GetHeight();
-	//			bool fitsWidth = currItemWidth <= packWidth - currX;  //check if the item can fit in the remaining width
-	//			bool fitsHeight = currItemHeight <= packHeight - currY;  //check if the item can fit in the remaining height, put it in if it does
-	//			if (fitsWidth && fitsHeight)
-	//			{
-	//				int blockedRight = DetectObstructionRight(currX, currY, currItem);
-	//				if (!blockedRight)
-	//				{// if it fits, place the object and move on to the next
-	//					PlaceItemInBoolArray(currX, currY, currItem);
-	//					currX += currItemWidth;
-	//					placeFound = true;
-	//				}
-	//				else
-	//				{ //if it fits within the backpack, but there is an item blocking it to it's right, find the next empty row and try again
-	//					currY += FindNextEmptyRow(currX + blockedRight, currY);
-	//					currX = 0;
-	//				}
-	//			}
-	//			else if (!fitsWidth)
-	//			{ // if it does not fit between the current index and the boundary of the backpack, find the next empty row and try again
-	//				currY += FindNextEmptyRow(0, currY);
-	//				currX = 0;
-	//			}
-	//			else
-	//			{ // if the width or an obstructing item to the right are not an issue, the item will not fit in the backpack per the current algorithm, quit
-	//				return;
-	//			}
-	//		}
-	//	}
-	//}
-
-	//int DetectObstructionRight(int startX, int startY, Item item) {
-	//	for (int i = 0; i < item.GetWidth(); i++) {
-	//		if (GetDisplayAtCoord(startX + i, startY)) {
-	//			return i;
-	//		}
-	//	}
-	//	return 0;
-	//}
-
-	//int FindNextEmptyRow(int startX, int startY) {//returns the difference between provided yCoord and first empty yCoord at xCoord provided
-	//	for (int i = 0; i < packHeight; i++) {
-	//		if (!GetDisplayAtCoord(startX, (startY + i))) {
-	//			return i;
-	//		}
-	//	}
-	//	return -1;
-	//}
+	vector<Item> items;
+	//old items[i] = (itemHasBeenPlaced, originX, originY, Item)
+	vector<Rect> remainingRects;
+	//old remainingRects[i] = (rectangleOriginX, rectangleOriginY, rectangleWidth, rectangleHeight)
 
 	char GetDisplayAtCoord(int x, int y) {
 		return displayArray[(y*packWidth) + x];
@@ -117,27 +90,29 @@ private:
 		int itemWidth = item.GetWidth();
 		int itemHeight = item.GetHeight();
 		//need to check item index if item is true or else not place it
-		for (int i = 0; i < item.GetHeight(); i++) {
-			for (int j = 0; j < item.GetWidth(); j++) {
-				if (i == 0 || j == 0 || i == itemHeight - 1 || j == itemWidth - 1)
-				{ //Set the displayArray coordinate to 2 if you are placing an item's border
+		if (item.IsPlaced()) {
+			for (int i = 0; i < itemHeight; i++) {
+				for (int j = 0; j < itemWidth; j++) {
 					SetDisplayCoord((xCoord + j), (yCoord + i), item);
 				}
-				else { SetDisplayCoord((xCoord + j), (yCoord + i), item); }
 			}
 		}
 	}
 
 	void UpdateBoolArray() {
 		ClearBoolArray();
-		for (tuple<bool, int, int, Item> item : items) {
-			PlaceItemInBoolArray(get<1>(item), get<2>(item), get<3>(item));
+		for (Item item : items) {
+			if (item.IsPlaced()) {
+				PlaceItemInBoolArray(item.GetPosX(), item.GetPosY(), item);
+			}
 		}
 	}
 
 	void FitItemsInPack() {
 		remainingRects.clear();
-		remainingRects.push_back(make_tuple(0, 0, packWidth, packHeight));
+		//make_tuple(0, 0, packWidth, packHeight);
+		//Partition p = Partition(0, 0, packWidth, packHeight);
+		remainingRects.push_back(Rect(0, 0, packWidth, packHeight));
 		// initializing remaining rects to backpack size
 		sort(items.begin(), items.end(), &Backpack::itemSortMaxDim);
 		// sorting items by largest dimension
@@ -152,20 +127,20 @@ private:
 		}
 	}
 
-	bool CheckItemFits(tuple<bool, int, int, Item> item, tuple<int, int, int, int> rect) {
-		return ((get<3>(item).GetWidth() <= get<2>(rect)) && (get<3>(item).GetHeight() <= get<3>(rect)));
+	bool CheckItemFits(Item item, Rect rect) {
+		return ((item.GetWidth() <= rect.GetWidth()) && (item.GetHeight() <= rect.GetHeight()));
 	}
 
 	void PlaceItem(int itemIndex, int rectIndex) {
 		//Im gonna put the new rectangles in incorrectly for now and let the sorting function just redo itself every iteration because I have enough to deal with already
-		tuple<bool, int, int, Item> item = items[itemIndex];
-		tuple<int, int, int, int> rect = remainingRects[rectIndex];
-		int rectWidth = get<2>(rect);
-		int rectHeight = get<3>(rect);
-		int rectOriginX = get<0>(rect);
-		int rectOriginY = get<1>(rect);
-		int itemWidth = get<3>(item).GetWidth();
-		int itemHeight = get<3>(item).GetHeight();
+		Item item = items[itemIndex];
+		Rect rect = remainingRects[rectIndex];
+		int rectWidth = rect.GetWidth();
+		int rectHeight = rect.GetHeight();
+		int rectOriginX = rect.GetOriginX();
+		int rectOriginY = rect.GetOriginY();
+		int itemWidth = item.GetWidth();
+		int itemHeight = item.GetHeight();
 		bool sameWidth = rectWidth == itemWidth;
 		bool sameHeight = rectHeight == itemHeight;
 
@@ -186,13 +161,13 @@ private:
 			newRect1Height += itemHeight;
 			newRect1OriginX += itemHeight;
 			remainingRects.erase(remainingRects.begin() + rectIndex);
-			remainingRects.push_back(make_tuple(newRect1OriginX, newRect1OriginY, newRect1Width, newRect1Height));
+			remainingRects.push_back(Rect(newRect1OriginX, newRect1OriginY, newRect1Width, newRect1Height));
 		}
 		else if (sameHeight) {
 			newRect1Height += itemHeight;
 			newRect1OriginX += itemHeight;
 			remainingRects.erase(remainingRects.begin() + rectIndex);
-			remainingRects.push_back(make_tuple(newRect1OriginX, newRect1OriginY, newRect1Width, newRect1Height));
+			remainingRects.push_back(Rect(newRect1OriginX, newRect1OriginY, newRect1Width, newRect1Height));
 		}
 		else if (itemWidth > itemHeight) {
 			//first split rectangle into two, where first rect equals the height exactly
@@ -205,8 +180,8 @@ private:
 			newRect1Width -= itemWidth;
 			newRect1OriginX += itemWidth;
 			remainingRects.erase(remainingRects.begin() + rectIndex);
-			remainingRects.push_back(make_tuple(newRect2OriginX, newRect2OriginY, newRect2Width, newRect2Height));
-			remainingRects.push_back(make_tuple(newRect1OriginX, newRect1OriginY, newRect1Width, newRect1Height));
+			remainingRects.push_back(Rect(newRect2OriginX, newRect2OriginY, newRect2Width, newRect2Height));
+			remainingRects.push_back(Rect(newRect1OriginX, newRect1OriginY, newRect1Width, newRect1Height));
 		}
 		else {
 			//first split rectangle into two, where first rect equals the width exactly
@@ -219,26 +194,24 @@ private:
 			newRect1Height -= itemHeight;
 			newRect1OriginY += itemHeight;
 			remainingRects.erase(remainingRects.begin() + rectIndex);
-			remainingRects.push_back(make_tuple(newRect2OriginX, newRect2OriginY, newRect2Width, newRect2Height));
-			remainingRects.push_back(make_tuple(newRect1OriginX, newRect1OriginY, newRect1Width, newRect1Height));
+			remainingRects.push_back(Rect(newRect2OriginX, newRect2OriginY, newRect2Width, newRect2Height));
+			remainingRects.push_back(Rect(newRect1OriginX, newRect1OriginY, newRect1Width, newRect1Height));
 		}
-		get<0>(items[itemIndex]) = true;
-		get<1>(items[itemIndex]) = rectOriginX;
-		get<2>(items[itemIndex]) = rectOriginY;
+		items[itemIndex].SetPosition(rectOriginX, rectOriginY);
 	}
 
-	static bool itemSortMaxDim(tuple<bool, int, int, Item> &item1, tuple<bool, int, int, Item> &item2) {
-		return (max(get<3>(item1).GetWidth(), get<3>(item1).GetHeight()) > max(get<3>(item2).GetWidth(), get<3>(item2).GetHeight()));
+	static bool itemSortMaxDim(Item &item1, Item &item2) {
+		return (max(item1.GetWidth(), item1.GetHeight()) > max(item2.GetWidth(), item2.GetHeight()));
 	}
 
-	static bool rectSortMinDim(tuple<int, int, int, int> &rect1, tuple<int, int, int, int> &rect2) {
-		return (min(get<2>(rect1), get<3>(rect1)) < min(get<2>(rect2), get<3>(rect2)));
+	static bool rectSortMinDim(Rect &rect1, Rect &rect2) {
+		return (min(rect1.GetWidth(), rect1.GetHeight()) < min(rect2.GetWidth(), rect2.GetHeight()));
 	}
 
 public:
 	Backpack(int inputWidth = 8, int inputHeight = 10)
 	{
-		if (inputHeight <= 0 || inputWidth <= 0) { throw std::invalid_argument("Error: May not initialize a Backpack with non=positive dimensions\n"); }
+		if (inputHeight <= 0 || inputWidth <= 0) { throw std::invalid_argument("Error: May not initialize a Backpack with non-positive dimensions\n"); }
 		else {
 			packHeight = inputHeight;
 			packWidth = inputWidth;
@@ -272,9 +245,6 @@ public:
 					rowString += displayArray[(i*packWidth) + j];
 					rowString += "_";
 				}
-				//else if (displayArray[(i*packWidth) + j] == 2) {
-				//	rowString += borderCell;
-				//}
 			}
 			rowString += rightMargin;
 			std::cout << rowString;
@@ -283,14 +253,13 @@ public:
 	}
 
 	void AddItem(Item item) {
-		items.push_back(make_tuple(false, 0, 0, item));
+		items.push_back(item);
 		FitItemsInPack();
 	}
 };
 
 int main()
 {
-	/*
 	Item testItemA = Item("A", 1, 1);
 	Item testItemB = Item("B", 2, 1);
 	Item testItemC = Item("C", 3, 3);
@@ -360,7 +329,7 @@ int main()
 	testBackpack7.DisplayInv();
 	//testBackpack7.FitItemsInPack();
 	testBackpack7.DisplayInv();
-	*/
+
 
 	//Testing Kenshi Item and backpack sizes
 	std::cout << "\n Testing Kenshi Item and backpack sizes \n";
