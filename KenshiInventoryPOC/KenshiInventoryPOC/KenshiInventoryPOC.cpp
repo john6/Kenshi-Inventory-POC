@@ -67,34 +67,38 @@ private:
 	int packHeight;
 	int packWidth;
 	int size;
-	char* displayArray;
+	string* displayArray;
 	vector<Item> items;
 	vector<Rect> remainingRects;
-	tuple<list<Item>, int, Rect, Rect>* decisionChart;
+	tuple<list<int>, int, Rect, Rect>* decisionChart;
 	/*
 	Each index represents a location in the 3d chart where the axis are width/height/itemNumber
-	at each index will be a list of the items this area can contain, and the two rectangles that should be created as a result of placing the current item. 
+	at each index will be a list of the item indexes this area can contain which will be in ascending order, 
+	and the two rectangles that should be created as a result of placing the current item. 
+
 	The int shows how the remaining space will approached
 		0 indicates that there is no remaining space => both following Rects will be NULL
 		1 indicates that there is only one remaining rectangle => second following Rect will be NULL
 		2 indicates that the remaining space was bisected vertically 
 		3 indicates that the remaining space was bisected horizontally
+		4 indicates that no items fit
+		5 indicates that this is the smallest item and there are none remaining
+
+	The Rects will hold their dimensions, and will also hold their offset from the previous rectangle
 	*/
 
-
-
 	//OLD IMPLEMENTATION
-	char GetDisplayAtCoord(int x, int y) {
+	string GetDisplayAtCoord(int x, int y) {
 		return displayArray[(y*packWidth) + x];
 	}
 
 	void SetDisplayCoord(int x, int y, Item item) {
-		displayArray[(y*packWidth) + x] = item.GetName().at(0);
+		displayArray[(y*packWidth) + x] = item.GetName().substr(0, 2);
 	}
 
 	void ClearBoolArray() {
 		for (int i = 0; i < size; i++) {
-			displayArray[i] = NULL;
+			displayArray[i] = "";
 		}
 	}
 
@@ -168,7 +172,7 @@ private:
 			remainingRects.erase(remainingRects.begin() + rectIndex);
 		}
 		else if (sameWidth) {
-			newRect1Height += itemHeight; //IM almost certain these should all be -= not +=
+			newRect1Height += itemHeight; //Im almost certain these should all be -= not +=
 			newRect1OriginX += itemHeight;
 			remainingRects.erase(remainingRects.begin() + rectIndex);
 			remainingRects.push_back(Rect(newRect1OriginX, newRect1OriginY, newRect1Width, newRect1Height));
@@ -224,83 +228,202 @@ private:
 		return (max(item1.GetWidth(), item1.GetHeight()) < max(item2.GetWidth(), item2.GetHeight()));
 	}
 
-	tuple<list<Item>, int, Rect, Rect> GetDecisionAtIndex(int widthI, int heightI, int itemI) {
-		return decisionChart[widthI + heightI*packWidth + itemI*packWidth*packHeight];
+	tuple<list<int>, int, Rect, Rect> GetDecisionAtIndex(int widthI, int heightI, int itemI) {
+		widthI -= 1;
+		heightI -= 1;
+		return decisionChart[(widthI + (heightI * packWidth) + (itemI * packWidth*packHeight))];
 	}
 
-	void SetDecisionAtIndex(int widthI, int heightI, int itemI, tuple<list<Item>, int, Rect, Rect> decision) {
-		decisionChart[widthI + heightI * packWidth + itemI * packWidth*packHeight] = decision;
+	void SetDecisionAtIndex(int widthI, int heightI, int itemI, tuple<list<int>, int, Rect, Rect> decision) {
+		widthI -= 1;
+		heightI -= 1;
+		decisionChart[widthI + heightI * packWidth + itemI * packWidth * packHeight] = decision;
 	}
 
 	void CreateDecisionChart() {
-		decisionChart = new tuple<list<Item>, int, Rect, Rect>[items.size()*size];
+		decisionChart = new tuple<list<int>, int, Rect, Rect>[items.size()*size];
+	}
+
+	list<int> mergeSortedSets(list<int> list1, list<int> list2) {
+		//Merges list2 into list1 without affecting either input list, and returns a sorted merged set
+		list<int> list1Copy(list1);
+		list<int> list2Copy(list2);
+		list1Copy.merge(list2Copy);
+		list1Copy.unique();
+		return list1Copy;
 	}
 
 	void CheckIfItemsFit() {
 		CreateDecisionChart();
 		//sorting items, smallest max dimension to largest max dimension
 		sort(items.begin(), items.end(), &Backpack::itemSortMaxDimAscending);
-		for (int rectWidth = 0; rectWidth < packWidth; rectWidth++) {
-			for (int rectHeight = 0; rectHeight < packHeight; rectHeight++) {
+		for (int rectWidth = 1; rectWidth <= packWidth; rectWidth++) {
+			for (int rectHeight = 1; rectHeight <= packHeight; rectHeight++) {
 				for (int itemNum = 0; itemNum < items.size(); itemNum++) {
 					if (CheckItemFits(items[itemNum], rectWidth, rectHeight)) { //first check if the item fits within the specified size
 						//check find the one or two possible ways to seperate the remaining space into rectangles
 						if ((items[itemNum].GetWidth() == rectWidth) && (items[itemNum].GetHeight() == rectHeight)) { //case if item fits exactly
-							list<Item> l;
-							l.push_front(items[itemNum]);
-							SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(l, 0, NULL, NULL));
+							list<int> singleItemList;
+							singleItemList.push_front(itemNum);
+							SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(singleItemList, 0, NULL, NULL));
 						}
 						else if (items[itemNum].GetWidth() == rectWidth) {
-							Rect newRect = Rect(rectWidth, (rectHeight - items[itemNum].GetHeight()));
-							list<Item> singleItemList;
-							singleItemList.push_front(items[itemNum]);
-							list<Item> combinedList;
-							combinedList = combineItemLists(singleItemList, get<0>(GetDecisionAtIndex(rectWidth, rectHeight, itemNum - 1)));
-							SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(combineItemLists, 1, newRect, NULL));
+							Rect newRect = Rect(rectWidth, (rectHeight - items[itemNum].GetHeight()), 0, items[itemNum].GetHeight());
+							list<int> itemRefsList;
+							itemRefsList.push_front(itemNum);
+							list<int> prevItemRefList;
+							if (itemNum > 0) {
+								prevItemRefList = get<0>(GetDecisionAtIndex(rectWidth, rectHeight, itemNum - 1));
+							}
+							else {
+								list<int> emptyList;
+								prevItemRefList = emptyList;
+							}
+							//this is completely unnnecssary, I can just put my new one on the back
+							list<int> mergedList = mergeSortedSets(itemRefsList, prevItemRefList);
+							SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(mergedList, 1, newRect, NULL));
 						}
 						else if (items[itemNum].GetHeight() == rectHeight) {
-							Rect newRect = Rect((rectWidth - items[itemNum].GetWidth()), rectHeight);
-							list<Item> singleItemList;
-							singleItemList.push_front(items[itemNum]);
-							list<Item> combinedList;
-							combinedList = combineItemLists(singleItemList, get<0>(GetDecisionAtIndex(rectWidth, rectHeight, itemNum - 1)));
-							SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(combineItemLists, 1, newRect, NULL));
+							Rect newRect = Rect((rectWidth - items[itemNum].GetWidth()), rectHeight, items[itemNum].GetWidth(), 0);
+							list<int> itemRefsList;
+							itemRefsList.push_front(itemNum);
+							list<int> prevItemRefList;
+							if (itemNum > 0) {
+								prevItemRefList = get<0>(GetDecisionAtIndex(rectWidth, rectHeight, itemNum - 1));
+							}
+							else {
+								list<int> emptyList;
+								prevItemRefList = emptyList;
+							}
+							//this is completely unnnecssary, I can just put my new one on the back
+							list<int> mergedList = mergeSortedSets(itemRefsList, prevItemRefList);
+							SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(mergedList, 1, newRect, NULL));
 						}
 						else {//Create both possible partitions
 							 //vertical bisection
-							int newRect1Width = items[itemNum].GetWidth();
-							int newRect1Height = rectHeight - items[itemNum].GetHeight();
-							Rect newRect1 = Rect(newRect1Width, newRect1Height);
-							int newRect2width = rectWidth - items[itemNum].GetWidth;
-							int newRect2Height = rectHeight;
-							Rect newRect2 = Rect(newRect2width, newRect2Height);
+							//int newRect1Width = items[itemNum].GetWidth();
+							//int newRect1Height = rectHeight - items[itemNum].GetHeight();
+							//int rect1OffsetX = 0;
+							//int rect1OffsetY = items[itemNum].GetHeight();
+							Rect newRect1 = Rect((items[itemNum].GetWidth()), (rectHeight - items[itemNum].GetHeight()), 0, items[itemNum].GetHeight());
+							//int newRect2width = rectWidth - items[itemNum].GetWidth;
+							//int newRect2Height = rectHeight;
+							//int rect2OffsetX = items[itemNum].GetWidth();
+							//int rect2OffsetY = 0;
+							Rect newRect2 = Rect((rectWidth - items[itemNum].GetWidth()), (rectHeight), items[itemNum].GetWidth(), 0);
 							//horizontal bisection
-							int newRect3Width = rectWidth - items[itemNum].GetWidth;
-							int newRect3Height = items[itemNum].GetHeight();
-							Rect newRect3 = Rect(newRect3Width, newRect3Height);
-							int newRect4Width = rectWidth;
-							int newRect4Height = rectHeight - items[itemNum].GetHeight();
-							Rect newRect4 = Rect(newRect4Width, newRect4Height);
-							//for both seperations, look at those rectangle sizes as indexs in this chart, with the itemNum-1, to find what set of items can fit in that amount of space
-							list<Item> possibleItemsToFit1 = combineItemLists(get<0>(GetDecisionAtIndex(newRect1.GetWidth(), newRect1.GetHeight(), itemNum-1)), get<0>(GetDecisionAtIndex(newRect2.GetWidth(), newRect2.GetHeight(), itemNum - 1)));
-							list<Item> possibleItemsToFit2 = combineItemLists(get<0>(GetDecisionAtIndex(newRect3.GetWidth(), newRect3.GetHeight(), itemNum - 1)), get<0>(GetDecisionAtIndex(newRect4.GetWidth(), newRect4.GetHeight(), itemNum - 1)));
-							//whichever seperation(pair of rectangles) sums to the greater subset of items, save that pair to this index, along with the subset of items
-							if (possibleItemsToFit1.size() > possibleItemsToFit2.size()) {
-								SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(possibleItemsToFit1, 2, newRect1, newRect2));
+							//int newRect3Width = rectWidth - items[itemNum].GetWidth();
+							//int newRect3Height = items[itemNum].GetHeight();
+							//int rect3OffsetX = items[itemNum].GetWidth();
+							//int rect3OffsetY = 0;
+							Rect newRect3 = Rect((rectWidth - items[itemNum].GetWidth()), (items[itemNum].GetHeight()), items[itemNum].GetWidth(), 0);
+							//int newRect4Width = rectWidth;
+							//int newRect4Height = rectHeight - items[itemNum].GetHeight();
+							//int rect4OffsetX = 0;
+							//int rect4OffsetY = items[itemNum].GetHeight();
+							Rect newRect4 = Rect((rectWidth), (rectHeight - items[itemNum].GetHeight()), 0, items[itemNum].GetHeight());
+							//for both seperations, look at those rectangle sizes as indexs in this chart, at row itemNum-1, to find what set of items can fit in that amount of space	
+							if (itemNum > 0) { //Don't check for smaller items if this is the first item
+								list<int> mergedList1 = mergeSortedSets(get<0>(GetDecisionAtIndex(newRect1.GetWidth(), newRect1.GetHeight(), itemNum - 1)), get<0>(GetDecisionAtIndex(newRect2.GetWidth(), newRect2.GetHeight(), itemNum - 1)));
+								list<int> mergedList2 = mergeSortedSets(get<0>(GetDecisionAtIndex(newRect3.GetWidth(), newRect3.GetHeight(), itemNum - 1)), get<0>(GetDecisionAtIndex(newRect4.GetWidth(), newRect4.GetHeight(), itemNum - 1)));
+								mergedList1.push_back(itemNum);
+								mergedList2.push_back(itemNum);
+								//whichever seperation(pair of rectangles) sums to the greater subset of items, save that pair to this index, along with the subset of items
+								if (mergedList1.size() > mergedList2.size()) {
+
+									SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(mergedList1, 2, newRect1, newRect2));
+								}
+								else {
+									SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(mergedList2, 3, newRect3, newRect4));
+								}
 							}
 							else {
-								SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(possibleItemsToFit2, 3, newRect3, newRect4));
+								list<int> singleItemList;
+								singleItemList.push_back(itemNum);
+								SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(singleItemList, 2, newRect1, newRect2));
 							}
 						}
 					}
-					else { //else save the rectangle pair and item subset from the same pack size and itemNum-1
-						SetDecisionAtIndex(rectWidth, rectHeight, itemNum, GetDecisionAtIndex(rectWidth, rectHeight, itemNum - 1));
+					else { //if the item doesn't fit, save the decision from the same rect size and item subset
+						if (itemNum > 0) {
+							SetDecisionAtIndex(rectWidth, rectHeight, itemNum, GetDecisionAtIndex(rectWidth, rectHeight, itemNum - 1));
+						}
+						else {
+							list<int> emptyList;
+							SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(emptyList, 5, NULL, NULL));
+						}
 					}
 				}
 			}
 		}
 	}
 
+	void PlaceItems() {
+		vector<Rect> remainingRects;
+		remainingRects.push_back(Rect(packWidth, packHeight, 0, 0));
+		for (int currItem = items.size() - 1; currItem >= 0; currItem--) {
+			for (int rectIndex = 0; rectIndex < remainingRects.size(); rectIndex++) {
+				bool breakOut = false;
+				Rect currRect = remainingRects[rectIndex];
+				tuple<list<int>, int, Rect, Rect> currTuple = GetDecisionAtIndex(currRect.GetWidth(), currRect.GetHeight(), currItem);
+				list<int> itemsContained = get<0>(currTuple);
+				//Need to change lists into sets so I can use the built in find method, they are already sets but I used the list data type mistakenly
+				//this should always be the last item actually, IM gonna leave it how it is for now because I just wanna see if it works
+				for (int itemNum : itemsContained) {
+					if (itemNum == currItem) {//current (largest remaining) item fits within the current rect
+						//PlaceItemInBoolArray(currRect.GetOriginX(), currRect.GetOriginY(), items[currItem]);
+						int currRectOriginX = currRect.GetOriginX();
+						int currRectOriginY = currRect.GetOriginY();
+						items[currItem].SetPosition(currRectOriginX, currRectOriginY);
+						switch (get<1>(currTuple)) {
+						//A bunch of these cases have the same result, I wasn't sure if they would at the time of writing, maybe fix if I ensure I dont need to add stuff
+
+						case 0: {  //0 indicates that there is no remaining space = > both following Rects will be NULL
+							//shouldn't do anything here, no new rectangles to add
+							break; 
+						}
+						case 1: {//1 indicates that there is only one remaining rectangle = > second following Rect will be NULL
+							Rect rect1 = get<2>(currTuple); //need to adjust the origin and add 
+							remainingRects.erase(remainingRects.begin() + rectIndex);
+							remainingRects.push_back(Rect(rect1.GetWidth(), rect1.GetHeight(), rect1.GetOriginX() + currRectOriginX, rect1.GetOriginY() + currRectOriginY));
+							break;
+						}
+						case 2: {//	2 indicates that the remaining space was bisected vertically
+							Rect vertRect1 = get<2>(currTuple); //need to adjust the origin and add 
+							Rect vertRect2 = get<3>(currTuple);
+							remainingRects.erase(remainingRects.begin()+rectIndex);
+							remainingRects.push_back(Rect(vertRect1.GetWidth(), vertRect1.GetHeight(), vertRect1.GetOriginX() + currRectOriginX, vertRect1.GetOriginY() + currRectOriginY));
+							remainingRects.push_back(Rect(vertRect2.GetWidth(), vertRect2.GetHeight(), vertRect2.GetOriginX() + currRectOriginX, vertRect2.GetOriginY() + currRectOriginY));
+							break;
+						}
+						case 3: {//3 indicates that the remaining space was bisected horizontally
+							Rect horRect1 = get<2>(currTuple); //need to adjust the origin and add 
+							Rect horRect2 = get<3>(currTuple);
+							remainingRects.erase(remainingRects.begin() + rectIndex);
+							remainingRects.push_back(Rect(horRect1.GetWidth(), horRect1.GetHeight(), horRect1.GetOriginX() + currRectOriginX, horRect1.GetOriginY() + currRectOriginY));
+							remainingRects.push_back(Rect(horRect2.GetWidth(), horRect2.GetHeight(), horRect2.GetOriginX() + currRectOriginX, horRect2.GetOriginY() + currRectOriginY));
+							break;
+						}
+						case 4: {//4 indicates that no items fit
+							break;
+						}
+						case 5: {//5 indicates that this is the smallest item and there are none remaining
+							break;
+						}
+						default: {
+							break;
+						}
+						}
+						breakOut = true;
+						break;
+					}
+				}
+				if (breakOut) {
+					break;
+				}
+			}
+		}
+	}
 
 public:
 	Backpack(int inputWidth = 8, int inputHeight = 10)
@@ -310,7 +433,7 @@ public:
 			packHeight = inputHeight;
 			packWidth = inputWidth;
 			size = packHeight * packWidth;
-			displayArray = new char[size];
+			displayArray = new string[size];
 		}
 	}
 
@@ -321,17 +444,17 @@ public:
 		string topMargin = "";
 		string leftMargin = "|";
 		string rightMargin = "||\n";
-		string emptyCell = "|___";
+		string emptyCell = "|____";
 		string fullCell = "|_O_";
 		string borderCell = "|_B_";
-		for (int i = 0; i < packWidth; i++) { topMargin += "____"; }
+		for (int i = 0; i < packWidth; i++) { topMargin += "_____"; }
 		topMargin += "___\n";
 		std::cout << label + topMargin;
 		std::cout << topMargin;
 		for (int i = 0; i < packHeight; i++) {
 			string rowString = leftMargin;
 			for (int j = 0; j < packWidth; j++) {
-				if (displayArray[(i*packWidth) + j] == NULL) {
+				if (displayArray[(i*packWidth) + j] == "") {
 					rowString += emptyCell;
 				}
 				else {
@@ -348,12 +471,15 @@ public:
 
 	void AddItem(Item item) {
 		items.push_back(item);
-		FitItemsInPack();
+		//FitItemsInPack();
+		CheckIfItemsFit();
+		PlaceItems();
 	}
 };
 
 int main()
 {
+	/*
 	Item testItemA = Item("A", 1, 1);
 	Item testItemB = Item("B", 2, 1);
 	Item testItemC = Item("C", 3, 3);
@@ -423,7 +549,7 @@ int main()
 	testBackpack7.DisplayInv();
 	//testBackpack7.FitItemsInPack();
 	testBackpack7.DisplayInv();
-
+	*/
 
 	//Testing Kenshi Item and backpack sizes
 	std::cout << "\n Testing Kenshi Item and backpack sizes \n";
@@ -447,15 +573,15 @@ int main()
 	kenshiBackpack.AddItem(itemA2);
 	kenshiBackpack.AddItem(itemB1);
 	kenshiBackpack.AddItem(itemB2);
-	//kenshiBackpack.AddItem(itemC1);
-	//kenshiBackpack.AddItem(itemD1);
-	//kenshiBackpack.AddItem(itemD2);
-	//kenshiBackpack.AddItem(itemE1);
-	//kenshiBackpack.AddItem(itemF1);
-	//kenshiBackpack.AddItem(itemF2);
-	//kenshiBackpack.AddItem(itemG1);
-	//kenshiBackpack.AddItem(itemG2);
-	//kenshiBackpack.AddItem(itemG3);
-	//kenshiBackpack.AddItem(itemG4);
+	kenshiBackpack.AddItem(itemC1);
+	kenshiBackpack.AddItem(itemD1);
+	kenshiBackpack.AddItem(itemD2);
+	kenshiBackpack.AddItem(itemE1);
+	kenshiBackpack.AddItem(itemF1);
+	kenshiBackpack.AddItem(itemF2);
+	kenshiBackpack.AddItem(itemG1);
+	kenshiBackpack.AddItem(itemG2);
+	kenshiBackpack.AddItem(itemG3);
+	kenshiBackpack.AddItem(itemG4);
 	kenshiBackpack.DisplayInv();
 }
