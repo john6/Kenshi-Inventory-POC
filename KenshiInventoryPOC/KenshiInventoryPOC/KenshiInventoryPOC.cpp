@@ -551,37 +551,64 @@ int main()
 	testBackpack7.DisplayInv();
 	*/
 
-	//Testing Kenshi Item and backpack sizes
-	std::cout << "\n Testing Kenshi Item and backpack sizes \n";
-	Item itemA1 = Item("A1", 4, 6);
-	Item itemA2 = Item("A2", 4, 6);
-	Item itemB1 = Item("B1", 5, 4);
-	Item itemB2 = Item("B2", 5, 4);
-	Item itemC1 = Item("C1", 2, 6);
-	Item itemD1 = Item("D1", 4, 2);
-	Item itemD2 = Item("D2", 4, 2);
-	Item itemE1 = Item("E1", 2, 4);
-	Item itemF1 = Item("F1", 1, 2);
-	Item itemF2 = Item("F2", 1, 2);
-	Item itemG1 = Item("G1", 3, 1);
-	Item itemG2 = Item("G2", 3, 1);
-	Item itemG3 = Item("G3", 3, 1);
-	Item itemG4 = Item("G4", 3, 1);
 
-	Backpack kenshiBackpack = Backpack(10, 14);
-	kenshiBackpack.AddItem(itemA1);
-	kenshiBackpack.AddItem(itemA2);
-	kenshiBackpack.AddItem(itemB1);
-	kenshiBackpack.AddItem(itemB2);
-	kenshiBackpack.AddItem(itemC1);
-	kenshiBackpack.AddItem(itemD1);
-	kenshiBackpack.AddItem(itemD2);
-	kenshiBackpack.AddItem(itemE1);
-	kenshiBackpack.AddItem(itemF1);
-	kenshiBackpack.AddItem(itemF2);
-	kenshiBackpack.AddItem(itemG1);
-	kenshiBackpack.AddItem(itemG2);
-	kenshiBackpack.AddItem(itemG3);
-	kenshiBackpack.AddItem(itemG4);
-	kenshiBackpack.DisplayInv();
+	/*
+	DYNAMIC ALG TESTING
+	*/
+	std::cout << "\n Testing simple examples\n";
+	Item simpleTestItem1 = Item("H1", 1, 1);
+	Item simpleTestItem2 = Item("I1", 2, 1);
+	Item simpleTestItem3 = Item("J1", 1, 2);
+	Item simpleTestItem4 = Item("K1", 3, 1);
+	Item simpleTestItem5 = Item("L1", 1, 3);
+	Item simpleTestItem6 = Item("M1", 4, 1);
+	Item simpleTestItem7 = Item("N1", 2, 1);
+	Item simpleTestItem8 = Item("O1", 2, 1);
+	Item simpleTestItem9 = Item("P1", 2, 1);
+	Item simpleTestItem0 = Item("Q1", 2, 1);
+
+	Backpack simpleTestPack = Backpack(5, 3);
+	simpleTestPack.AddItem(simpleTestItem1);
+	simpleTestPack.AddItem(simpleTestItem2);
+	simpleTestPack.AddItem(simpleTestItem3);
+	simpleTestPack.AddItem(simpleTestItem4);
+	simpleTestPack.AddItem(simpleTestItem5);
+	simpleTestPack.AddItem(simpleTestItem6);
+	simpleTestPack.DisplayInv();
+	//Testing Kenshi Item and backpack sizes
+	//std::cout << "\n Testing Kenshi Item and backpack sizes \n";
+	//Item itemA1 = Item("A1", 4, 6);
+	//Item itemA2 = Item("A2", 4, 6);
+	//Item itemB1 = Item("B1", 5, 4);
+	//Item itemB2 = Item("B2", 5, 4);
+	//Item itemC1 = Item("C1", 2, 6);
+	//Item itemD1 = Item("D1", 4, 2);
+	//Item itemD2 = Item("D2", 4, 2);
+	//Item itemE1 = Item("E1", 2, 4);
+	//Item itemF1 = Item("F1", 1, 2);
+	//Item itemF2 = Item("F2", 1, 2);
+	//Item itemG1 = Item("G1", 3, 1);
+	//Item itemG2 = Item("G2", 3, 1);
+	//Item itemG3 = Item("G3", 3, 1);
+	//Item itemG4 = Item("G4", 3, 1);
+
+	//Backpack kenshiBackpack = Backpack(10, 14);
+	//kenshiBackpack.AddItem(itemA1);
+	//kenshiBackpack.AddItem(itemA2);
+	//kenshiBackpack.AddItem(itemB1);
+	//kenshiBackpack.AddItem(itemB2);
+	//kenshiBackpack.AddItem(itemC1);
+	//kenshiBackpack.AddItem(itemD1);
+	//kenshiBackpack.AddItem(itemD2);
+	//kenshiBackpack.AddItem(itemE1);
+	//kenshiBackpack.AddItem(itemF1);
+	//kenshiBackpack.AddItem(itemF2);
+	//kenshiBackpack.AddItem(itemG1);
+	//kenshiBackpack.AddItem(itemG2);
+	//kenshiBackpack.AddItem(itemG3);
+	//kenshiBackpack.AddItem(itemG4);
+	//kenshiBackpack.DisplayInv();
+
+
+
 }
