@@ -1,4 +1,4 @@
 ﻿  KenshiInventoryPOC.cpp
-c:\users\john russell\source\repos\kenshi-inventory-poc\kenshiinventorypoc\kenshiinventorypoc\kenshiinventorypoc.cpp(262): warning C4018: '<': signed/unsigned mismatch
-c:\users\john russell\source\repos\kenshi-inventory-poc\kenshiinventorypoc\kenshiinventorypoc\kenshiinventorypoc.cpp(365): warning C4018: '<': signed/unsigned mismatch
+c:\users\john russell\source\repos\kenshi-inventory-poc\kenshiinventorypoc\kenshiinventorypoc\kenshiinventorypoc.cpp(187): warning C4018: '<': signed/unsigned mismatch
+c:\users\john russell\source\repos\kenshi-inventory-poc\kenshiinventorypoc\kenshiinventorypoc\kenshiinventorypoc.cpp(254): warning C4018: '<': signed/unsigned mismatch
   KenshiInventoryPOC.vcxproj -> C:\Users\John Russell\Source\Repos\Kenshi-Inventory-POC\KenshiInventoryPOC\Debug\KenshiInventoryPOC.exe
