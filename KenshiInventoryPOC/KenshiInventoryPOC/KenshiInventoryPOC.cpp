@@ -134,7 +134,15 @@ private:
 	}
 
 	static bool itemSortMaxDimAscending(Item &item1, Item &item2) {
-		//will return true if the first input item has a smaller maximum dimension than the second input item
+		//will return true if the first input item has a smaller maximum dimension than the second input item,
+		//if the maximum dimensions are equal it will decide based on minimum dimension
+		bool returnBool;
+		if (max(item1.GetWidth(), item1.GetHeight()) == max(item2.GetWidth(), item2.GetHeight())) {
+			return (min(item1.GetWidth(), item1.GetHeight()) < min(item2.GetWidth(), item2.GetHeight()));
+		}
+		else {
+			return (max(item1.GetWidth(), item1.GetHeight()) < max(item2.GetWidth(), item2.GetHeight()));
+		}
 		return (max(item1.GetWidth(), item1.GetHeight()) < max(item2.GetWidth(), item2.GetHeight()));
 	}
 
@@ -143,6 +151,7 @@ private:
 	}
 
 	bool CompareItemSetArea(set<int> itemSet1, set<int> itemSet2) {
+		//returns true if set1 is bigger than or equal to set2
 		int set1TotalArea = 0;
 		int set2TotalArea = 0;
 		for (int itemListIndex : itemSet1) {
@@ -151,8 +160,7 @@ private:
 		for (int itemListIndex : itemSet2) {
 			set2TotalArea += (items[itemListIndex].GetWidth() * items[itemListIndex].GetHeight());
 		}
-		//As always, not sure how to break this tie, and it could end up being important
-		return set1TotalArea > set2TotalArea;
+		return set1TotalArea >= set2TotalArea;
 	}
 
 	tuple<set<int>, int, Rect, Rect> GetDecisionAtIndex(int widthI, int heightI, int itemI) {
@@ -178,13 +186,17 @@ private:
 		return resultSet;
 	}
 
+	/*
 	void CheckIfItemsFit() {
 		InitializeDecisionChart();
 		//sorting items, smallest max dimension to largest max dimension
 		sort(items.begin(), items.end(), &Backpack::itemSortMaxDimAscending);
-		for (int rectWidth = 1; rectWidth <= packWidth; rectWidth++) {
+		//for (int rectWidth = 1; rectWidth <= packWidth; rectWidth++) {
+		//	for (int rectHeight = 1; rectHeight <= packHeight; rectHeight++) {
+		//		for (int itemNum = 0; itemNum < items.size(); itemNum++) {
+		for (int itemNum = 0; itemNum < items.size(); itemNum++) {
 			for (int rectHeight = 1; rectHeight <= packHeight; rectHeight++) {
-				for (int itemNum = 0; itemNum < items.size(); itemNum++) {
+				for (int rectWidth = 1; rectWidth <= packWidth; rectWidth++) {
 					if (CheckItemFits(items[itemNum], rectWidth, rectHeight)) { //first check if the item fits within the specified size
 						int currIWidth = items[itemNum].GetWidth();
 						int currIHeight = items[itemNum].GetHeight();
@@ -196,12 +208,109 @@ private:
 						}
 						else if ((currIWidth == rectWidth) || (currIHeight == rectHeight)) {
 							Rect newRect;
+							if (currIWidth == rectWidth) { newRect = Rect(rectWidth, (rectHeight - currIHeight), 0, currIHeight); }
+							else { newRect = Rect((rectWidth - currIWidth), rectHeight, currIWidth, 0); }
+							set<int> itemRefSet;
+							//This line just uses the current space without the current item's space subtracted
+							//if (itemNum > 0) { itemRefSet = get<0>(GetDecisionAtIndex(rectWidth, rectHeight, itemNum - 1)); }
+							if (itemNum > 0) { itemRefSet = get<0>(GetDecisionAtIndex(newRect.GetWidth(), newRect.GetHeight(), itemNum - 1)); }
+							itemRefSet.insert(itemNum);
+							SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(itemRefSet, 1, newRect, NULL));
+						}
+						else {
+							//Create both possible partitions
+							//vertical bisection
+							Rect newRect1 = Rect((currIWidth), (rectHeight - currIHeight), 0, currIHeight);
+							Rect newRect2 = Rect((rectWidth - currIWidth), (rectHeight), currIWidth, 0);
+							//horizontal bisection
+							Rect newRect3 = Rect((rectWidth - currIWidth), (currIHeight), currIWidth, 0);
+							Rect newRect4 = Rect((rectWidth), (rectHeight - currIHeight), 0, currIHeight);
+							//for both seperations, look at those rectangle sizes as indexs in this chart, at row itemNum-1, to find what set of items can fit in that amount of space	
+							if (itemNum > 0) { //Don't check for smaller items if this is the first item
+								set<int> mergedList1 = mergeSortedSets(get<0>(GetDecisionAtIndex(newRect1.GetWidth(), newRect1.GetHeight(), itemNum - 1)),
+									get<0>(GetDecisionAtIndex(newRect2.GetWidth(), newRect2.GetHeight(), itemNum - 1)));
+								set<int> mergedList2 = mergeSortedSets(get<0>(GetDecisionAtIndex(newRect3.GetWidth(), newRect3.GetHeight(), itemNum - 1)),
+									get<0>(GetDecisionAtIndex(newRect4.GetWidth(), newRect4.GetHeight(), itemNum - 1)));
+								mergedList1.insert(itemNum);
+								mergedList2.insert(itemNum);
+								//whichever seperation(pair of rectangles) sums to the greater subset of items, save that pair to this index, along with the subset of items
+								if (CompareItemSetArea(mergedList1, mergedList2)) {
+
+									SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(mergedList1, 2, newRect1, newRect2));
+								}
+								else {
+									SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(mergedList2, 3, newRect3, newRect4));
+								}
+							}
+							else {
+								set<int> singleItemList;
+								singleItemList.insert(itemNum);
+								SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(singleItemList, 2, newRect1, newRect2));
+							}
+						}
+					}
+					else { //if the item doesn't fit, save the decision from the same rect size and item subset
+						if (itemNum > 0) { SetDecisionAtIndex(rectWidth, rectHeight, itemNum, GetDecisionAtIndex(rectWidth, rectHeight, itemNum - 1)); }
+						else {
+							set<int> emptyList;
+							SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(emptyList, 5, NULL, NULL));
+						}
+					}
+				}
+			}
+		}
+	}
+	*/
+
+	void CheckIfItemsFit() {
+		InitializeDecisionChart();
+		//sorting items, smallest max dimension to largest max dimension
+		sort(items.begin(), items.end(), &Backpack::itemSortMaxDimAscending);
+		//for (int rectWidth = 1; rectWidth <= packWidth; rectWidth++) {
+		//	for (int rectHeight = 1; rectHeight <= packHeight; rectHeight++) {
+		//		for (int itemNum = 0; itemNum < items.size(); itemNum++) {
+		for (int itemNum = 0; itemNum < items.size(); itemNum++) {
+			for (int rectHeight = 1; rectHeight <= packHeight; rectHeight++) {
+				for (int rectWidth = 1; rectWidth <= packWidth; rectWidth++) {
+					if (CheckItemFits(items[itemNum], rectWidth, rectHeight)) { //first check if the item fits within the specified size
+						int currIWidth = items[itemNum].GetWidth();
+						int currIHeight = items[itemNum].GetHeight();
+						tuple<set<int>, int, Rect, Rect> decisionWithoutCurrItem;
+						if (itemNum > 0) { 
+							decisionWithoutCurrItem = GetDecisionAtIndex(rectWidth, rectHeight, itemNum - 1); 
+						}
+						else {
+							set<int> emptyList;
+							decisionWithoutCurrItem = make_tuple(emptyList, 5, NULL, NULL);
+						}
+						//determine the one or two possible ways to seperate the remaining space into rectangles
+						if ((currIWidth == rectWidth) && (currIHeight == rectHeight)) { //case if item fits exactly
+							set<int> singleItemSet;
+							singleItemSet.insert(itemNum);
+							bool currenItemSetBigger = CompareItemSetArea(singleItemSet, get<0>(decisionWithoutCurrItem));
+							if (currenItemSetBigger) {
+								SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(singleItemSet, 0, NULL, NULL));
+							}
+							else {
+								SetDecisionAtIndex(rectWidth, rectHeight, itemNum, decisionWithoutCurrItem);
+							}
+						}
+						else if ((currIWidth == rectWidth) || (currIHeight == rectHeight)) {
+							Rect newRect;
 							if (currIWidth == rectWidth) {newRect = Rect(rectWidth, (rectHeight - currIHeight), 0, currIHeight);}
 							else {newRect = Rect((rectWidth - currIWidth), rectHeight, currIWidth, 0);}
 							set<int> itemRefSet;
-							if (itemNum > 0) { itemRefSet = get<0>(GetDecisionAtIndex(rectWidth, rectHeight, itemNum - 1)); }
+							//This line just uses the current space without the current item's space subtracted
+							//if (itemNum > 0) { itemRefSet = get<0>(GetDecisionAtIndex(rectWidth, rectHeight, itemNum - 1)); }
+							if (itemNum > 0) { itemRefSet = get<0>(GetDecisionAtIndex(newRect.GetWidth(), newRect.GetHeight(), itemNum - 1)); }
 							itemRefSet.insert(itemNum);
-							SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(itemRefSet, 1, newRect, NULL));
+							bool currenItemSetBigger = CompareItemSetArea(itemRefSet, get<0>(decisionWithoutCurrItem));
+							if (currenItemSetBigger) {
+								SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(itemRefSet, 1, newRect, NULL));
+							}
+							else {
+								SetDecisionAtIndex(rectWidth, rectHeight, itemNum, decisionWithoutCurrItem);
+							}
 						}
 						else {
 							//Create both possible partitions
@@ -221,11 +330,22 @@ private:
 								mergedList2.insert(itemNum);
 								//whichever seperation(pair of rectangles) sums to the greater subset of items, save that pair to this index, along with the subset of items
 								if (CompareItemSetArea(mergedList1, mergedList2)) {
-
-									SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(mergedList1, 2, newRect1, newRect2));
+									bool currenItemSetBigger = CompareItemSetArea(mergedList1, get<0>(decisionWithoutCurrItem));
+									if (currenItemSetBigger) {
+										SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(mergedList1, 2, newRect1, newRect2));
+									}
+									else {
+										SetDecisionAtIndex(rectWidth, rectHeight, itemNum, decisionWithoutCurrItem);
+									}
 								}
 								else {
-									SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(mergedList2, 3, newRect3, newRect4));
+									bool currenItemSetBigger = CompareItemSetArea(mergedList2, get<0>(decisionWithoutCurrItem));
+									if (currenItemSetBigger) {
+										SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(mergedList2, 3, newRect3, newRect4));
+									}
+									else {
+										SetDecisionAtIndex(rectWidth, rectHeight, itemNum, decisionWithoutCurrItem);
+									}
 								}
 							}
 							else {
@@ -256,20 +376,19 @@ private:
 				Rect currRect = remainingRects[rectIndex];
 				tuple<set<int>, int, Rect, Rect> currTuple = GetDecisionAtIndex(currRect.GetWidth(), currRect.GetHeight(), currItem);
 				set<int> itemsContained = get<0>(currTuple);
-				if (!itemsContained.empty() && (*itemsContained.rbegin() == currItem)) {//confirm that the last item in the list is the currItem
+ 				if (!itemsContained.empty() && (*itemsContained.rbegin() == currItem)) {//confirm that the last item in the list is the currItem
 					int currRectOriginX = currRect.GetOriginX();
 					int currRectOriginY = currRect.GetOriginY();
 					items[currItem].SetPosition(currRectOriginX, currRectOriginY);
 					switch (get<1>(currTuple)) {
-						//A bunch of these cases have the same result, I wasn't sure if they would at the time of writing, maybe fix if I ensure I dont need to add stuff
-
 					case 0: {//0 indicates that there is no remaining space = > both following Rects will be NULL
+						remainingRects.erase(remainingRects.begin() + rectIndex);
 						break;
 					}
 					case 1: {//1 indicates that there is only one remaining rectangle = > second following Rect will be NULL
 						Rect rect1 = get<2>(currTuple); //need to adjust the origin and add 
 						remainingRects.erase(remainingRects.begin() + rectIndex);
-						remainingRects.push_back(Rect(rect1.GetWidth(),
+						remainingRects.insert(remainingRects.begin(), Rect(rect1.GetWidth(),
 							rect1.GetHeight(),
 							rect1.GetOriginX() + currRectOriginX,
 							rect1.GetOriginY() + currRectOriginY));
@@ -279,11 +398,11 @@ private:
 						Rect vRect1 = get<2>(currTuple); //need to adjust the origin before adding
 						Rect vRect2 = get<3>(currTuple);
 						remainingRects.erase(remainingRects.begin() + rectIndex);
-						remainingRects.push_back(Rect(vRect1.GetWidth(),
+						remainingRects.insert(remainingRects.begin(), Rect(vRect1.GetWidth(),
 							vRect1.GetHeight(),
 							vRect1.GetOriginX() + currRectOriginX,
 							vRect1.GetOriginY() + currRectOriginY));
-						remainingRects.push_back(Rect(vRect2.GetWidth(),
+						remainingRects.insert(remainingRects.begin(), Rect(vRect2.GetWidth(),
 							vRect2.GetHeight(),
 							vRect2.GetOriginX() + currRectOriginX,
 							vRect2.GetOriginY() + currRectOriginY));
@@ -293,11 +412,11 @@ private:
 						Rect hRect1 = get<2>(currTuple); //need to adjust the origin before adding
 						Rect hRect2 = get<3>(currTuple);
 						remainingRects.erase(remainingRects.begin() + rectIndex);
-						remainingRects.push_back(Rect(hRect1.GetWidth(),
+						remainingRects.insert(remainingRects.begin(), Rect(hRect1.GetWidth(),
 							hRect1.GetHeight(),
 							hRect1.GetOriginX() + currRectOriginX,
 							hRect1.GetOriginY() + currRectOriginY));
-						remainingRects.push_back(Rect(hRect2.GetWidth(),
+						remainingRects.insert(remainingRects.begin(), Rect(hRect2.GetWidth(),
 							hRect2.GetHeight(),
 							hRect2.GetOriginX() + currRectOriginX,
 							hRect2.GetOriginY() + currRectOriginY));
@@ -363,8 +482,36 @@ public:
 		std::cout << topMargin;
 	}
 
+	void DisplayDecisionChart() {
+		//for (int width = 1; width <= packWidth; width++) {
+		//	cout << "WIDTH = " + to_string(width);
+		//	for (int height = 1; height <= packWidth; height++) {
+		//		cout << "WIDTH = " + to_string(height);
+		//		for (int item = 0; item < items.size(); item++) {
+		for (int item = 0; item < items.size(); item++) {
+			cout << "***ITEM*** = " + to_string(item) + "\n";
+			for (int height = 1; height <= packHeight; height++) {
+				cout << "\nHEIGHT = " + to_string(height) + "\n";
+				for (int width = 1; width <= packWidth; width++) {
+					cout << "WIDTH = " + to_string(width) + "    ";
+					tuple<set<int>, int, Rect, Rect> currTuple = GetDecisionAtIndex(width, height, item);
+					string setString = "| ";
+					for (int setItem : get<0>(currTuple)) {
+						setString += to_string(setItem) + ", ";
+					}
+					setString += " |\n";
+					cout << setString;
+				}
+			}
+		}
+	}
+
 	void AddItem(Item item) {
 		items.push_back(item);
+		//SortInventory();
+	}
+
+	void SortInventory() {
 		CheckIfItemsFit();
 		PlaceItems();
 	}
@@ -372,104 +519,157 @@ public:
 
 int main()
 {
-	/*
-	Item testItemA = Item("A", 1, 1);
-	Item testItemB = Item("B", 2, 1);
-	Item testItemC = Item("C", 3, 3);
-	Item testItemD = Item("D", 7, 3);
-	Item testItemE = Item("E", 4, 4);
-	Item testItemF = Item("F", 5, 5);
-	Item testItemG = Item("G", 12, 1);
-	Item testItemH = Item("H", 4, 8);
-	Item testItemI = Item("I", 8, 4);
+	//Backpack sorting Alg testing
+	std::cout << "\n Testing 1x1 examples\n";
+	Item oneByOne1 = Item("H1", 1, 1);
+	Item oneByOne2 = Item("I1", 1, 1);
+	Item oneByOne3 = Item("J1", 1, 1);
+	Item oneByOne4 = Item("K1", 1, 1);
+	Item oneByOne5 = Item("L1", 1, 1);
+	Item oneByOne6 = Item("M1", 1, 1);
+	Item oneByOne7 = Item("N1", 1, 1);
+	Item oneByOne8 = Item("O1", 1, 1);
+	Item oneByOne9 = Item("P1", 1, 1);
+	Item oneByOne0 = Item("Q1", 1, 1);
+	Item oneByOne01 = Item("R1", 1, 1);
+	Item oneByOne02 = Item("S1", 1, 1);
 
-	//Inventory display test 1
-	std::cout << "\n Inventory display test 1 \n";
-	Backpack testBackpack1;
-	testBackpack1.DisplayInv();
+	std::cout << "\n 2X5\n";
+	Backpack oneByOnePack1 = Backpack(2, 5);
+	oneByOnePack1.AddItem(oneByOne1);
+	oneByOnePack1.AddItem(oneByOne2);
+	oneByOnePack1.AddItem(oneByOne3);
+	oneByOnePack1.AddItem(oneByOne4);
+	oneByOnePack1.AddItem(oneByOne5);
+	oneByOnePack1.AddItem(oneByOne6);
+	oneByOnePack1.AddItem(oneByOne7);
+	oneByOnePack1.AddItem(oneByOne8);
+	oneByOnePack1.AddItem(oneByOne9);
+	oneByOnePack1.AddItem(oneByOne0);
+	oneByOnePack1.SortInventory();
+	oneByOnePack1.DisplayInv();
 
+	std::cout << "\n 5X2\n";
+	Backpack oneByOnePack2 = Backpack(5, 2);
+	oneByOnePack2.AddItem(oneByOne1);
+	oneByOnePack2.AddItem(oneByOne2);
+	oneByOnePack2.AddItem(oneByOne3);
+	oneByOnePack2.AddItem(oneByOne4);
+	oneByOnePack2.AddItem(oneByOne5);
+	oneByOnePack2.AddItem(oneByOne6);
+	oneByOnePack2.AddItem(oneByOne7);
+	oneByOnePack2.AddItem(oneByOne8);
+	oneByOnePack2.AddItem(oneByOne9);
+	oneByOnePack2.AddItem(oneByOne0);
+	oneByOnePack2.SortInventory();
+	oneByOnePack2.DisplayInv();
 
-	//Inventory display test 2
-	std::cout << "\n Inventory display test 2 \n";
-	Backpack testBackpack2 = Backpack(20, 20);
-	testBackpack2.DisplayInv();
+	std::cout << "\n 3X4\n";
+	Backpack oneByOnePack3 = Backpack(3, 4);
+	oneByOnePack3.AddItem(oneByOne1);
+	oneByOnePack3.AddItem(oneByOne2);
+	oneByOnePack3.AddItem(oneByOne3);
+	oneByOnePack3.AddItem(oneByOne4);
+	oneByOnePack3.AddItem(oneByOne5);
+	oneByOnePack3.AddItem(oneByOne6);
+	oneByOnePack3.AddItem(oneByOne7);
+	oneByOnePack3.AddItem(oneByOne8);
+	oneByOnePack3.AddItem(oneByOne9);
+	oneByOnePack3.AddItem(oneByOne0);
+	oneByOnePack3.AddItem(oneByOne01);
+	oneByOnePack3.AddItem(oneByOne02);
+	oneByOnePack3.SortInventory();
+	oneByOnePack3.DisplayInv();
 
+	std::cout << "\n 4X3\n";
+	Backpack oneByOnePack4 = Backpack(4, 3);
+	oneByOnePack4.AddItem(oneByOne1);
+	oneByOnePack4.AddItem(oneByOne2);
+	oneByOnePack4.AddItem(oneByOne3);
+	oneByOnePack4.AddItem(oneByOne4);
+	oneByOnePack4.AddItem(oneByOne5);
+	oneByOnePack4.AddItem(oneByOne6);
+	oneByOnePack4.AddItem(oneByOne7);
+	oneByOnePack4.AddItem(oneByOne8);
+	oneByOnePack4.AddItem(oneByOne9);
+	oneByOnePack4.AddItem(oneByOne0);
+	oneByOnePack4.AddItem(oneByOne01);
+	oneByOnePack4.AddItem(oneByOne02);
+	oneByOnePack4.SortInventory();
+	oneByOnePack4.DisplayInv();
 
-	//Item add and display test
-	std::cout << "\n Item add and display test \n";
-	Backpack testBackpack3 = Backpack(20, 20);
-	testBackpack3.AddItem(testItemA);
-	testBackpack3.DisplayInv();
+	std::cout << "\n Testing with large items: \n";
+	Item largeItem1 = Item("A1", 1, 4);
+	Item largeItem2 = Item("A2", 1, 4);
+	Item largeItem3 = Item("A3", 1, 4);
+	Item largeItem4 = Item("A4", 1, 4);
+	Item largeItem5 = Item("A5", 4, 1);
+	Item largeItem6 = Item("A6", 4, 1);
+	Item largeItem7 = Item("A7", 4, 1);
+	Item largeItem8 = Item("A8", 4, 1);
+	Item largeItem9 = Item("B1", 2, 2);
+	Item largeItem10 = Item("B2", 2, 2);
+	Item largeItem11 = Item("B3", 2, 2);
+	Item largeItem12 = Item("B4", 2, 2);
+	Item largeItem13 = Item("C1", 4, 4);
 
-	//Adding two items display test
-	std::cout << "\n Adding two items display test \n";
-	Backpack testBackpack4 = Backpack(20, 20);
-	testBackpack4.AddItem(testItemC);
-	testBackpack4.AddItem(testItemD);
-	testBackpack4.DisplayInv();
+	std::cout << "\n Large Items: 1X4\n";
+	Backpack largeItemPack1 = Backpack(4, 4);
+	largeItemPack1.AddItem(largeItem1);
+	largeItemPack1.AddItem(largeItem2);
+	largeItemPack1.AddItem(largeItem3);
+	largeItemPack1.AddItem(largeItem4);
+	largeItemPack1.SortInventory();
+	largeItemPack1.DisplayInv();
 
-	//adding items that need to go under firsts ones
-	std::cout << "\n adding items that need to go under firsts ones \n";
-	Backpack testBackpack5 = Backpack(20, 20);
-	testBackpack5.AddItem(testItemE);
-	testBackpack5.AddItem(testItemF);
-	testBackpack5.AddItem(testItemG);
-	testBackpack5.AddItem(testItemA);
-	testBackpack5.AddItem(testItemB);
-	testBackpack5.AddItem(testItemC);
-	testBackpack5.DisplayInv();
+	std::cout << "\n Large Items: 4X1\n";
+	Backpack largeItemPack2 = Backpack(4, 4);
+	largeItemPack2.AddItem(largeItem5);
+	largeItemPack2.AddItem(largeItem6);
+	largeItemPack2.AddItem(largeItem7);
+	largeItemPack2.AddItem(largeItem8);
+	largeItemPack2.SortInventory();
+	largeItemPack2.DisplayInv();
 
-	//Checking to ensure new border printing is setting width and height correctly
-	std::cout << "\n Checking to ensure new border printing is setting width and height correctly \n";
-	Backpack testBackpack6 = Backpack(20, 20);
-	testBackpack6.AddItem(testItemH);
-	testBackpack6.AddItem(testItemI);
-	testBackpack6.DisplayInv();
+	std::cout << "\n Large Items: square\n";
+	Backpack largeItemPack3 = Backpack(4, 4);
+	largeItemPack3.AddItem(largeItem9);
+	largeItemPack3.AddItem(largeItem10);
+	largeItemPack3.AddItem(largeItem11);
+	largeItemPack3.AddItem(largeItem12);
+	largeItemPack3.SortInventory();
+	largeItemPack3.DisplayInv();
 
-	//Testing the sort function
-	std::cout << "\n Testing the sort function \n";
-	Backpack testBackpack7 = Backpack(20, 20);
-	testBackpack7.AddItem(testItemA);
-	testBackpack7.AddItem(testItemB);
+	std::cout << "\n Large Items: full Inv sized item\n";
+	Backpack largeItemPack4 = Backpack(4, 4);
+	largeItemPack4.AddItem(largeItem13);
+	largeItemPack4.SortInventory();
+	largeItemPack4.DisplayInv();
 
-	testBackpack7.AddItem(testItemC);
-	testBackpack7.AddItem(testItemD);
-	testBackpack7.AddItem(testItemE);
-	testBackpack7.AddItem(testItemF);
-	testBackpack7.AddItem(testItemG);
-	testBackpack7.AddItem(testItemH);
-	testBackpack7.AddItem(testItemI);
-	testBackpack7.DisplayInv();
-	//testBackpack7.FitItemsInPack();
-	testBackpack7.DisplayInv();
-	*/
-
-
-	/*
-	DYNAMIC ALG TESTING
-	*/
-	std::cout << "\n Testing simple examples\n";
-	Item simpleTestItem1 = Item("H1", 1, 1);
-	Item simpleTestItem2 = Item("I1", 2, 1);
-	Item simpleTestItem3 = Item("J1", 1, 2);
-	Item simpleTestItem4 = Item("K1", 3, 1);
-	Item simpleTestItem5 = Item("L1", 1, 3);
-	Item simpleTestItem6 = Item("M1", 4, 1);
-	Item simpleTestItem7 = Item("N1", 2, 1);
-	Item simpleTestItem8 = Item("O1", 2, 1);
-	Item simpleTestItem9 = Item("P1", 2, 1);
-	Item simpleTestItem0 = Item("Q1", 2, 1);
+	std::cout << "\n Complex example #1\n";
+	Item complexTestItem1 = Item("H1", 1, 1);
+	Item complexTestItem2 = Item("I1", 2, 1);
+	Item complexTestItem3 = Item("J1", 1, 2);
+	Item complexTestItem4 = Item("K1", 3, 1);
+	Item complexTestItem5 = Item("L1", 1, 3);
+	Item complexTestItem6 = Item("M1", 4, 1);
+	Item complexTestItem7 = Item("N1", 2, 1);
+	Item complexTestItem8 = Item("O1", 2, 1);
+	Item complexTestItem9 = Item("P1", 2, 1);
+	Item complexTestItem0 = Item("Q1", 2, 1);
 
 	Backpack simpleTestPack = Backpack(5, 3);
-	simpleTestPack.AddItem(simpleTestItem1);
-	simpleTestPack.AddItem(simpleTestItem2);
-	simpleTestPack.AddItem(simpleTestItem3);
-	simpleTestPack.AddItem(simpleTestItem4);
-	simpleTestPack.AddItem(simpleTestItem5);
-	simpleTestPack.AddItem(simpleTestItem6);
+	simpleTestPack.AddItem(complexTestItem1);
+	simpleTestPack.AddItem(complexTestItem2);
+	simpleTestPack.AddItem(complexTestItem3);
+	simpleTestPack.AddItem(complexTestItem4);
+	simpleTestPack.AddItem(complexTestItem5);
+	simpleTestPack.AddItem(complexTestItem6);
+	simpleTestPack.SortInventory();
 	simpleTestPack.DisplayInv();
+
 	//Testing Kenshi Item and backpack sizes
-	std::cout << "\n Testing Kenshi Item and backpack sizes \n";
+	std::cout << "\n Kenshi full backpack example \n";
 	Item itemA1 = Item("A1", 4, 6);
 	Item itemA2 = Item("A2", 4, 6);
 	Item itemB1 = Item("B1", 5, 4);
@@ -500,8 +700,7 @@ int main()
 	kenshiBackpack.AddItem(itemG2);
 	kenshiBackpack.AddItem(itemG3);
 	kenshiBackpack.AddItem(itemG4);
+	kenshiBackpack.SortInventory();
+	kenshiBackpack.DisplayDecisionChart();
 	kenshiBackpack.DisplayInv();
-
-
-
 }
