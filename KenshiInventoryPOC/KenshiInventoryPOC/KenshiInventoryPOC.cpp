@@ -33,6 +33,12 @@ public:
 		posY = newY;
 	}
 
+	void ResetPosition() {
+		isPlaced = false;
+		posX = -1;
+		posY = -1;
+	}
+
 	Item(string inputName, int inputWidth, int inputHeight) {
 		name = inputName;
 		width = inputWidth;
@@ -185,82 +191,6 @@ private:
 		merge(set1.begin(), set1.end(), set2.begin(), set2.end(), inserter(resultSet, resultSet.begin()));
 		return resultSet;
 	}
-
-	/*
-	void CheckIfItemsFit() {
-		InitializeDecisionChart();
-		//sorting items, smallest max dimension to largest max dimension
-		sort(items.begin(), items.end(), &Backpack::itemSortMaxDimAscending);
-		//for (int rectWidth = 1; rectWidth <= packWidth; rectWidth++) {
-		//	for (int rectHeight = 1; rectHeight <= packHeight; rectHeight++) {
-		//		for (int itemNum = 0; itemNum < items.size(); itemNum++) {
-		for (int itemNum = 0; itemNum < items.size(); itemNum++) {
-			for (int rectHeight = 1; rectHeight <= packHeight; rectHeight++) {
-				for (int rectWidth = 1; rectWidth <= packWidth; rectWidth++) {
-					if (CheckItemFits(items[itemNum], rectWidth, rectHeight)) { //first check if the item fits within the specified size
-						int currIWidth = items[itemNum].GetWidth();
-						int currIHeight = items[itemNum].GetHeight();
-						//determine the one or two possible ways to seperate the remaining space into rectangles
-						if ((currIWidth == rectWidth) && (currIHeight == rectHeight)) { //case if item fits exactly
-							set<int> singleItemSet;
-							singleItemSet.insert(itemNum);
-							SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(singleItemSet, 0, NULL, NULL));
-						}
-						else if ((currIWidth == rectWidth) || (currIHeight == rectHeight)) {
-							Rect newRect;
-							if (currIWidth == rectWidth) { newRect = Rect(rectWidth, (rectHeight - currIHeight), 0, currIHeight); }
-							else { newRect = Rect((rectWidth - currIWidth), rectHeight, currIWidth, 0); }
-							set<int> itemRefSet;
-							//This line just uses the current space without the current item's space subtracted
-							//if (itemNum > 0) { itemRefSet = get<0>(GetDecisionAtIndex(rectWidth, rectHeight, itemNum - 1)); }
-							if (itemNum > 0) { itemRefSet = get<0>(GetDecisionAtIndex(newRect.GetWidth(), newRect.GetHeight(), itemNum - 1)); }
-							itemRefSet.insert(itemNum);
-							SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(itemRefSet, 1, newRect, NULL));
-						}
-						else {
-							//Create both possible partitions
-							//vertical bisection
-							Rect newRect1 = Rect((currIWidth), (rectHeight - currIHeight), 0, currIHeight);
-							Rect newRect2 = Rect((rectWidth - currIWidth), (rectHeight), currIWidth, 0);
-							//horizontal bisection
-							Rect newRect3 = Rect((rectWidth - currIWidth), (currIHeight), currIWidth, 0);
-							Rect newRect4 = Rect((rectWidth), (rectHeight - currIHeight), 0, currIHeight);
-							//for both seperations, look at those rectangle sizes as indexs in this chart, at row itemNum-1, to find what set of items can fit in that amount of space	
-							if (itemNum > 0) { //Don't check for smaller items if this is the first item
-								set<int> mergedList1 = mergeSortedSets(get<0>(GetDecisionAtIndex(newRect1.GetWidth(), newRect1.GetHeight(), itemNum - 1)),
-									get<0>(GetDecisionAtIndex(newRect2.GetWidth(), newRect2.GetHeight(), itemNum - 1)));
-								set<int> mergedList2 = mergeSortedSets(get<0>(GetDecisionAtIndex(newRect3.GetWidth(), newRect3.GetHeight(), itemNum - 1)),
-									get<0>(GetDecisionAtIndex(newRect4.GetWidth(), newRect4.GetHeight(), itemNum - 1)));
-								mergedList1.insert(itemNum);
-								mergedList2.insert(itemNum);
-								//whichever seperation(pair of rectangles) sums to the greater subset of items, save that pair to this index, along with the subset of items
-								if (CompareItemSetArea(mergedList1, mergedList2)) {
-
-									SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(mergedList1, 2, newRect1, newRect2));
-								}
-								else {
-									SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(mergedList2, 3, newRect3, newRect4));
-								}
-							}
-							else {
-								set<int> singleItemList;
-								singleItemList.insert(itemNum);
-								SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(singleItemList, 2, newRect1, newRect2));
-							}
-						}
-					}
-					else { //if the item doesn't fit, save the decision from the same rect size and item subset
-						if (itemNum > 0) { SetDecisionAtIndex(rectWidth, rectHeight, itemNum, GetDecisionAtIndex(rectWidth, rectHeight, itemNum - 1)); }
-						else {
-							set<int> emptyList;
-							SetDecisionAtIndex(rectWidth, rectHeight, itemNum, make_tuple(emptyList, 5, NULL, NULL));
-						}
-					}
-				}
-			}
-		}
-	}
-	*/
 
 	void CheckIfItemsFit() {
 		InitializeDecisionChart();
@@ -483,11 +413,6 @@ public:
 	}
 
 	void DisplayDecisionChart() {
-		//for (int width = 1; width <= packWidth; width++) {
-		//	cout << "WIDTH = " + to_string(width);
-		//	for (int height = 1; height <= packWidth; height++) {
-		//		cout << "WIDTH = " + to_string(height);
-		//		for (int item = 0; item < items.size(); item++) {
 		for (int item = 0; item < items.size(); item++) {
 			cout << "***ITEM*** = " + to_string(item) + "\n";
 			for (int height = 1; height <= packHeight; height++) {
@@ -506,9 +431,37 @@ public:
 		}
 	}
 
+	void PrintBackpackStats() {
+		cout << "___________________________________________\n";
+		cout << "total backpack area: " + to_string(size) + "\n";
+		cout << "number of items: " + to_string(items.size()) + "\n";
+		int totalItemArea = 0;
+		int totalIncludedItemArea = 0;
+		int totalExcludedItemArea = 0;
+		string listOfExcludedItems = "[ ";
+		for (Item item : items) {
+			totalItemArea += (item.GetWidth() * item.GetHeight());
+		}
+		for (Item item : items) {
+			if (item.GetPosX() == -1) {
+				totalExcludedItemArea += (item.GetWidth() * item.GetHeight());
+				listOfExcludedItems += item.GetName() + ", ";
+			}
+			else {
+				totalIncludedItemArea += (item.GetWidth() * item.GetHeight());
+			}
+		}
+		listOfExcludedItems += " ]";
+		cout << "total area of items: " + to_string(totalItemArea) + "\n";
+		cout << "total area of included items: " + to_string(totalIncludedItemArea) + "\n";
+		cout << "total area of excluded items: " + to_string(totalExcludedItemArea) + "\n";
+		cout << "List of excluded items: " + listOfExcludedItems + "\n";
+		cout << "___________________________________________\n";
+	}
+
 	void AddItem(Item item) {
+		item.ResetPosition();
 		items.push_back(item);
-		//SortInventory();
 	}
 
 	void SortInventory() {
@@ -669,38 +622,268 @@ int main()
 	simpleTestPack.DisplayInv();
 
 	//Testing Kenshi Item and backpack sizes
-	std::cout << "\n Kenshi full backpack example \n";
-	Item itemA1 = Item("A1", 4, 6);
-	Item itemA2 = Item("A2", 4, 6);
-	Item itemB1 = Item("B1", 5, 4);
-	Item itemB2 = Item("B2", 5, 4);
-	Item itemC1 = Item("C1", 2, 6);
-	Item itemD1 = Item("D1", 4, 2);
-	Item itemD2 = Item("D2", 4, 2);
-	Item itemE1 = Item("E1", 2, 4);
-	Item itemF1 = Item("F1", 1, 2);
-	Item itemF2 = Item("F2", 1, 2);
-	Item itemG1 = Item("G1", 3, 1);
-	Item itemG2 = Item("G2", 3, 1);
-	Item itemG3 = Item("G3", 3, 1);
-	Item itemG4 = Item("G4", 3, 1);
+	Item plank1 = Item("A1", 10, 2);
+	Item fleshCleaver1 = Item("B1", 8, 2);
+	Item powerCore = Item("C1", 6, 2);
+	Item mercenaryPlate1 = Item("D1", 4, 6);
+	Item mercenaryPlate2 = Item("D2", 4, 6);
+	Item robotArm1 = Item("E1", 2, 6);
+	Item steelBar1 = Item("F1", 6, 1);
+	Item steelBar2 = Item("F2", 6, 1);
+	Item largeBackpack1 = Item("G1", 5, 4);
+	Item largeBackpack2 = Item("G2", 5, 4);
+	Item skeletonMuscle1 = Item("H1", 5, 1);
+	Item ironPlates1 = Item("I1", 4, 3);
+	Item ironPlates2 = Item("I2", 4, 3);
+	Item plateBoots1 = Item("J1", 4, 2);
+	Item plateBoots2 = Item("J2", 4, 2);
+	Item plateBoots3 = Item("J3", 4, 2);
+	Item saw1 = Item("K1", 2, 4);
+	Item saw2 = Item("K2", 2, 4);
+	Item largeMedkit1 = Item("L1", 3, 3);
+	Item ironOre1 = Item("M1", 3, 2);
+	Item leather1 = Item("N1", 2, 3);
+	Item leather2 = Item("N2", 2, 3);
+	Item cucumber1 = Item("O1", 3, 1);
+	Item cucumber2 = Item("O2", 3, 1);
+	Item cucumber3 = Item("O3", 3, 1);
+	Item cucumber4 = Item("O4", 3, 1);
+	Item book1 = Item("P1", 2, 2);
+	Item book2 = Item("P2", 2, 2);
+	Item book3 = Item("P3", 2, 2);
+	Item book4 = Item("P4", 2, 2);
+	Item book5 = Item("P5", 2, 2);
+	Item lantern1 = Item("Q1", 1, 2);
+	Item lantern2 = Item("Q2", 1, 2);
+	Item lantern3 = Item("Q3", 1, 2);
+	Item lantern4 = Item("Q4", 1, 2);
+	Item smallBandage1 = Item("R1", 2, 1);
+	Item bounty1 = Item("S1", 1, 1);
+	Item bounty2 = Item("S2", 1, 1);
+	Item bounty3 = Item("S3", 1, 1);
 
-	Backpack kenshiBackpack = Backpack(10, 14);
-	kenshiBackpack.AddItem(itemA1);
-	kenshiBackpack.AddItem(itemA2);
-	kenshiBackpack.AddItem(itemB1);
-	kenshiBackpack.AddItem(itemB2);
-	kenshiBackpack.AddItem(itemC1);
-	kenshiBackpack.AddItem(itemD1);
-	kenshiBackpack.AddItem(itemD2);
-	kenshiBackpack.AddItem(itemE1);
-	kenshiBackpack.AddItem(itemF1);
-	kenshiBackpack.AddItem(itemF2);
-	kenshiBackpack.AddItem(itemG1);
-	kenshiBackpack.AddItem(itemG2);
-	kenshiBackpack.AddItem(itemG3);
-	kenshiBackpack.AddItem(itemG4);
-	kenshiBackpack.SortInventory();
-	kenshiBackpack.DisplayDecisionChart();
-	kenshiBackpack.DisplayInv();
+	std::cout << "\nKenshi full backpack example 1 \n\n";
+	Backpack kenshiBackpack1 = Backpack(10, 14);
+	kenshiBackpack1.AddItem(mercenaryPlate1);
+	kenshiBackpack1.AddItem(mercenaryPlate2);
+	kenshiBackpack1.AddItem(robotArm1);
+	kenshiBackpack1.AddItem(largeBackpack1);
+	kenshiBackpack1.AddItem(largeBackpack2);
+	kenshiBackpack1.AddItem(plateBoots1);
+	kenshiBackpack1.AddItem(plateBoots2);
+	kenshiBackpack1.AddItem(saw1);
+	kenshiBackpack1.AddItem(lantern1);
+	kenshiBackpack1.AddItem(lantern2);
+	kenshiBackpack1.AddItem(cucumber1);
+	kenshiBackpack1.AddItem(cucumber2);
+	kenshiBackpack1.AddItem(cucumber3);
+	kenshiBackpack1.AddItem(cucumber4);
+	kenshiBackpack1.SortInventory();
+	//kenshiBackpack1.DisplayDecisionChart();
+	kenshiBackpack1.PrintBackpackStats();
+	kenshiBackpack1.DisplayInv();
+
+	std::cout << "\nKenshi full backpack example 2 \n\n";
+	Backpack kenshiBackpack2 = Backpack(10, 14);
+	kenshiBackpack2.AddItem(mercenaryPlate1);
+	kenshiBackpack2.AddItem(mercenaryPlate2);
+	kenshiBackpack2.AddItem(robotArm1);
+	kenshiBackpack2.AddItem(largeBackpack1);
+	kenshiBackpack2.AddItem(plateBoots1);
+	kenshiBackpack2.AddItem(saw1);
+	kenshiBackpack2.AddItem(saw2);
+	kenshiBackpack2.AddItem(largeMedkit1);
+	kenshiBackpack2.AddItem(ironOre1);
+	kenshiBackpack2.AddItem(cucumber1);
+	kenshiBackpack2.AddItem(cucumber2);
+	kenshiBackpack2.AddItem(cucumber3);
+	kenshiBackpack2.AddItem(book1);
+	kenshiBackpack2.AddItem(lantern1);
+	kenshiBackpack2.AddItem(lantern2);
+	kenshiBackpack2.AddItem(smallBandage1);
+	kenshiBackpack2.AddItem(bounty1);
+	kenshiBackpack2.AddItem(bounty2);
+	kenshiBackpack2.SortInventory();
+	//kenshiBackpack2.DisplayDecisionChart();
+	kenshiBackpack2.PrintBackpackStats();
+	kenshiBackpack2.DisplayInv();
+
+	std::cout << "\nKenshi full backpack example 3 \n\n";
+	Backpack kenshiBackpack3 = Backpack(10, 14);
+	kenshiBackpack3.AddItem(robotArm1);
+	kenshiBackpack3.AddItem(steelBar1);
+	kenshiBackpack3.AddItem(steelBar2);
+	kenshiBackpack3.AddItem(saw1);
+	kenshiBackpack3.AddItem(largeBackpack1);
+	kenshiBackpack3.AddItem(lantern1);
+	kenshiBackpack3.AddItem(cucumber1);
+	kenshiBackpack3.AddItem(cucumber2);
+	kenshiBackpack3.AddItem(ironPlates1);
+	kenshiBackpack3.AddItem(plateBoots1);
+	kenshiBackpack3.AddItem(leather1);
+	kenshiBackpack3.AddItem(plateBoots2);
+	kenshiBackpack3.AddItem(plateBoots3);
+	kenshiBackpack3.AddItem(book1);
+	kenshiBackpack3.AddItem(book2);
+	kenshiBackpack3.AddItem(lantern2);
+	kenshiBackpack3.AddItem(lantern3);
+	kenshiBackpack3.AddItem(ironPlates2);
+	kenshiBackpack3.AddItem(leather2);
+	kenshiBackpack3.AddItem(cucumber3);
+	kenshiBackpack3.AddItem(lantern4);
+	kenshiBackpack3.AddItem(cucumber4);
+	kenshiBackpack3.SortInventory();
+	//kenshiBackpack3.DisplayDecisionChart();
+	kenshiBackpack3.PrintBackpackStats();
+	kenshiBackpack3.DisplayInv();
+
+	std::cout << "\nKenshi full backpack example 4 \n\n";
+	Backpack kenshiBackpack4 = Backpack(10, 14);
+	kenshiBackpack4.AddItem(robotArm1);
+	kenshiBackpack4.AddItem(steelBar1);
+	kenshiBackpack4.AddItem(steelBar2);
+	kenshiBackpack4.AddItem(saw1);
+	kenshiBackpack4.AddItem(largeBackpack1);
+	kenshiBackpack4.AddItem(lantern1);
+	kenshiBackpack4.AddItem(cucumber1);
+	kenshiBackpack4.AddItem(cucumber2);
+	kenshiBackpack4.AddItem(ironPlates1);
+	kenshiBackpack4.AddItem(plateBoots1);
+	kenshiBackpack4.AddItem(leather1);
+	kenshiBackpack4.AddItem(book1);
+	kenshiBackpack4.AddItem(smallBandage1);
+	kenshiBackpack4.AddItem(plateBoots2);
+	kenshiBackpack4.AddItem(ironPlates2);
+	kenshiBackpack4.AddItem(book2);
+	kenshiBackpack4.AddItem(cucumber3);
+	kenshiBackpack4.AddItem(bounty1);
+	kenshiBackpack4.AddItem(plank1);
+	kenshiBackpack4.SortInventory();
+	//kenshiBackpack4.DisplayDecisionChart();
+	kenshiBackpack4.PrintBackpackStats();
+	kenshiBackpack4.DisplayInv();
+
+	std::cout << "\nKenshi full backpack example 5 \n\n";
+	Backpack kenshiBackpack5 = Backpack(10, 14);
+	kenshiBackpack5.AddItem(plank1);
+	kenshiBackpack5.AddItem(robotArm1);
+	kenshiBackpack5.AddItem(steelBar1);
+	kenshiBackpack5.AddItem(book1);
+	kenshiBackpack5.AddItem(steelBar2);
+	kenshiBackpack5.AddItem(ironPlates1);
+	kenshiBackpack5.AddItem(plateBoots1);
+	kenshiBackpack5.AddItem(plateBoots2);
+	kenshiBackpack5.AddItem(ironPlates2);
+	kenshiBackpack5.AddItem(saw1);
+	kenshiBackpack5.AddItem(cucumber1);
+	kenshiBackpack5.AddItem(bounty1);
+	kenshiBackpack5.AddItem(leather1);
+	kenshiBackpack5.AddItem(book2);
+	kenshiBackpack5.AddItem(cucumber2);
+	kenshiBackpack5.AddItem(lantern1);
+	kenshiBackpack5.AddItem(cucumber3);
+	kenshiBackpack5.AddItem(smallBandage1);
+	kenshiBackpack5.AddItem(bounty2);
+	kenshiBackpack5.AddItem(plateBoots3);
+	kenshiBackpack5.AddItem(book3);
+	kenshiBackpack5.AddItem(book4);
+	kenshiBackpack5.AddItem(lantern2);
+	kenshiBackpack5.AddItem(bounty3);
+	kenshiBackpack5.SortInventory();
+	//kenshiBackpack5.DisplayDecisionChart();
+	kenshiBackpack5.PrintBackpackStats();
+	kenshiBackpack5.DisplayInv();
+
+	std::cout << "\nKenshi full backpack example 6 \n\n";
+	Backpack kenshiBackpack6 = Backpack(10, 14);
+	kenshiBackpack6.AddItem(plank1);
+	kenshiBackpack6.AddItem(robotArm1);
+	kenshiBackpack6.AddItem(steelBar1);
+	kenshiBackpack6.AddItem(book1);
+	kenshiBackpack6.AddItem(skeletonMuscle1);
+	kenshiBackpack6.AddItem(bounty1);
+	kenshiBackpack6.AddItem(ironPlates1);
+	kenshiBackpack6.AddItem(plateBoots1);
+	kenshiBackpack6.AddItem(plateBoots2);
+	kenshiBackpack6.AddItem(ironPlates2);
+	kenshiBackpack6.AddItem(saw1);
+	kenshiBackpack6.AddItem(cucumber1);
+	kenshiBackpack6.AddItem(lantern1);
+	kenshiBackpack6.AddItem(leather1);
+	kenshiBackpack6.AddItem(bounty2);
+	kenshiBackpack6.AddItem(cucumber2);
+	kenshiBackpack6.AddItem(lantern2);
+	kenshiBackpack6.AddItem(book2);
+	kenshiBackpack6.AddItem(cucumber3);
+	kenshiBackpack6.AddItem(lantern3);
+	kenshiBackpack6.AddItem(plateBoots3);
+	kenshiBackpack6.AddItem(book3);
+	kenshiBackpack6.AddItem(ironOre1);
+	kenshiBackpack6.SortInventory();
+	//kenshiBackpack6.DisplayDecisionChart();
+	kenshiBackpack6.PrintBackpackStats();
+	kenshiBackpack6.DisplayInv();
+
+	std::cout << "\nKenshi full backpack example 7 \n\n";
+	Backpack kenshiBackpack7 = Backpack(10, 14);
+	kenshiBackpack7.AddItem(plank1);
+	kenshiBackpack7.AddItem(robotArm1);
+	kenshiBackpack7.AddItem(steelBar1);
+	kenshiBackpack7.AddItem(book1);
+	kenshiBackpack7.AddItem(skeletonMuscle1);
+	kenshiBackpack7.AddItem(bounty1);
+	kenshiBackpack7.AddItem(powerCore);
+	kenshiBackpack7.AddItem(book2);
+	kenshiBackpack7.AddItem(cucumber1);
+	kenshiBackpack7.AddItem(bounty2);
+	kenshiBackpack7.AddItem(plateBoots1);
+	kenshiBackpack7.AddItem(ironPlates1);
+	kenshiBackpack7.AddItem(saw2);
+	kenshiBackpack7.AddItem(cucumber2);
+	kenshiBackpack7.AddItem(lantern1);
+	kenshiBackpack7.AddItem(leather1);
+	kenshiBackpack7.AddItem(bounty3);
+	kenshiBackpack7.AddItem(cucumber3);
+	kenshiBackpack7.AddItem(lantern2);
+	kenshiBackpack7.AddItem(book3);
+	kenshiBackpack7.AddItem(cucumber4);
+	kenshiBackpack7.AddItem(lantern3);
+	kenshiBackpack7.AddItem(plateBoots2);
+	kenshiBackpack7.AddItem(book4);
+	kenshiBackpack7.AddItem(ironOre1);
+	kenshiBackpack7.SortInventory();
+	//kenshiBackpack7.DisplayDecisionChart();
+	kenshiBackpack7.PrintBackpackStats();
+	kenshiBackpack7.DisplayInv();
+
+	std::cout << "\nKenshi full backpack example 8 \n\n";
+	Backpack kenshiBackpack8 = Backpack(10, 14);
+	kenshiBackpack8.AddItem(plank1);
+	kenshiBackpack8.AddItem(fleshCleaver1);
+	kenshiBackpack8.AddItem(book1);
+	kenshiBackpack8.AddItem(book2);
+	kenshiBackpack8.AddItem(book3);
+	kenshiBackpack8.AddItem(powerCore);
+	kenshiBackpack8.AddItem(skeletonMuscle1);
+	kenshiBackpack8.AddItem(bounty1);
+	kenshiBackpack8.AddItem(plateBoots1);
+	kenshiBackpack8.AddItem(smallBandage1);
+	kenshiBackpack8.AddItem(ironPlates1);
+	kenshiBackpack8.AddItem(saw1);
+	kenshiBackpack8.AddItem(cucumber1);
+	kenshiBackpack8.AddItem(lantern1);
+	kenshiBackpack8.AddItem(leather1);
+	kenshiBackpack8.AddItem(bounty2);
+	kenshiBackpack8.AddItem(cucumber2);
+	kenshiBackpack8.AddItem(lantern2);
+	kenshiBackpack8.AddItem(book4);
+	kenshiBackpack8.AddItem(cucumber3);
+	kenshiBackpack8.AddItem(lantern3);
+	kenshiBackpack8.AddItem(plateBoots2);
+	kenshiBackpack8.AddItem(book5);
+	kenshiBackpack8.AddItem(ironOre1);
+	kenshiBackpack8.SortInventory();
+	//kenshiBackpack8.DisplayDecisionChart();
+	kenshiBackpack8.PrintBackpackStats();
+	kenshiBackpack8.DisplayInv();
 }
