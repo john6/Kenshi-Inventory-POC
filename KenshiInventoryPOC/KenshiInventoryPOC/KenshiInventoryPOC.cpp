@@ -157,7 +157,7 @@ private:
 	}
 
 	bool CompareItemSetArea(set<int> itemSet1, set<int> itemSet2) {
-		//returns true if set1 is bigger than or equal to set2
+		//returns true if the area of the items contained in set1 is bigger than or equal to set2
 		int set1TotalArea = 0;
 		int set2TotalArea = 0;
 		for (int itemListIndex : itemSet1) {
@@ -188,10 +188,17 @@ private:
 	set<int> mergeSortedSets(set<int> set1, set<int> set2) {
 		//Merges set1 and set2, and returns a sorted merged set, only real purpose of this function is to make merge calls less messy
 		set<int> resultSet;
+		//WAIT WHY ISNT THIS A CALL TO UNION
+		//Apparently this is equivalent for my purpose, maybe the other is better suited, though
 		merge(set1.begin(), set1.end(), set2.begin(), set2.end(), inserter(resultSet, resultSet.begin()));
 		return resultSet;
 	}
-
+	//RUN TIME CAN BE IMPROVED
+	//There are Item*Height*Width loops
+	//Within each loop, it can take up to 2(subset of num of items) to merge the sets
+	//Within each loop, it can take a similar amount of time to compare the subsets, and that can be greatly reduced by having each item set record it's total area upon creation
+	//when you combine subsets, youd have to still re-evaluate the total area because of the overlapping items
+	//These improvements aren't quite worth doing because The algorithm itself seems to be suboptimal, If I want to improve I'd have to move from the guillotine to max rects alg
 	void CheckIfItemsFit() {
 		InitializeDecisionChart();
 		//sorting items, smallest max dimension to largest max dimension
@@ -383,7 +390,7 @@ public:
 	void DisplayInv() {
 		//UpdateDisplayArray();
 		UpdateBoolArray();
-		string label = "\nBackpack\n";
+		string label = "\nBackpack View\n";
 		string topMargin = "";
 		string leftMargin = "|";
 		string rightMargin = "||\n";
@@ -500,6 +507,7 @@ int main()
 	oneByOnePack1.AddItem(oneByOne9);
 	oneByOnePack1.AddItem(oneByOne0);
 	oneByOnePack1.SortInventory();
+	oneByOnePack1.PrintBackpackStats();
 	oneByOnePack1.DisplayInv();
 
 	std::cout << "\n 5X2\n";
@@ -515,6 +523,7 @@ int main()
 	oneByOnePack2.AddItem(oneByOne9);
 	oneByOnePack2.AddItem(oneByOne0);
 	oneByOnePack2.SortInventory();
+	oneByOnePack2.PrintBackpackStats();
 	oneByOnePack2.DisplayInv();
 
 	std::cout << "\n 3X4\n";
@@ -532,6 +541,7 @@ int main()
 	oneByOnePack3.AddItem(oneByOne01);
 	oneByOnePack3.AddItem(oneByOne02);
 	oneByOnePack3.SortInventory();
+	oneByOnePack3.PrintBackpackStats();
 	oneByOnePack3.DisplayInv();
 
 	std::cout << "\n 4X3\n";
@@ -549,6 +559,7 @@ int main()
 	oneByOnePack4.AddItem(oneByOne01);
 	oneByOnePack4.AddItem(oneByOne02);
 	oneByOnePack4.SortInventory();
+	oneByOnePack4.PrintBackpackStats();
 	oneByOnePack4.DisplayInv();
 
 	std::cout << "\n Testing with large items: \n";
@@ -573,6 +584,7 @@ int main()
 	largeItemPack1.AddItem(largeItem3);
 	largeItemPack1.AddItem(largeItem4);
 	largeItemPack1.SortInventory();
+	largeItemPack1.PrintBackpackStats();
 	largeItemPack1.DisplayInv();
 
 	std::cout << "\n Large Items: 4X1\n";
@@ -582,6 +594,7 @@ int main()
 	largeItemPack2.AddItem(largeItem7);
 	largeItemPack2.AddItem(largeItem8);
 	largeItemPack2.SortInventory();
+	largeItemPack2.PrintBackpackStats();
 	largeItemPack2.DisplayInv();
 
 	std::cout << "\n Large Items: square\n";
@@ -591,12 +604,15 @@ int main()
 	largeItemPack3.AddItem(largeItem11);
 	largeItemPack3.AddItem(largeItem12);
 	largeItemPack3.SortInventory();
+	largeItemPack3.PrintBackpackStats();
 	largeItemPack3.DisplayInv();
+
 
 	std::cout << "\n Large Items: full Inv sized item\n";
 	Backpack largeItemPack4 = Backpack(4, 4);
 	largeItemPack4.AddItem(largeItem13);
 	largeItemPack4.SortInventory();
+	largeItemPack4.PrintBackpackStats();
 	largeItemPack4.DisplayInv();
 
 	std::cout << "\n Complex example #1\n";
@@ -619,6 +635,7 @@ int main()
 	simpleTestPack.AddItem(complexTestItem5);
 	simpleTestPack.AddItem(complexTestItem6);
 	simpleTestPack.SortInventory();
+	simpleTestPack.PrintBackpackStats();
 	simpleTestPack.DisplayInv();
 
 	//Testing Kenshi Item and backpack sizes
@@ -662,7 +679,7 @@ int main()
 	Item bounty2 = Item("S2", 1, 1);
 	Item bounty3 = Item("S3", 1, 1);
 
-	std::cout << "\nKenshi full backpack example 1 \n\n";
+	//std::cout << "\nKenshi full backpack example 1 \n\n";
 	Backpack kenshiBackpack1 = Backpack(10, 14);
 	kenshiBackpack1.AddItem(mercenaryPlate1);
 	kenshiBackpack1.AddItem(mercenaryPlate2);
@@ -682,6 +699,7 @@ int main()
 	//kenshiBackpack1.DisplayDecisionChart();
 	kenshiBackpack1.PrintBackpackStats();
 	kenshiBackpack1.DisplayInv();
+
 
 	std::cout << "\nKenshi full backpack example 2 \n\n";
 	Backpack kenshiBackpack2 = Backpack(10, 14);
@@ -707,6 +725,57 @@ int main()
 	//kenshiBackpack2.DisplayDecisionChart();
 	kenshiBackpack2.PrintBackpackStats();
 	kenshiBackpack2.DisplayInv();
+
+	//std::cout << "\nKenshi full backpack example 2.5, attempting to isolate issue \n\n";
+	Backpack kenshiBackpack2P5 = Backpack(10, 8);
+	kenshiBackpack2P5.AddItem(largeBackpack1);
+	kenshiBackpack2P5.AddItem(plateBoots1);
+	kenshiBackpack2P5.AddItem(saw1);
+	kenshiBackpack2P5.AddItem(saw2);
+	kenshiBackpack2P5.AddItem(largeMedkit1);
+	kenshiBackpack2P5.AddItem(ironOre1);
+	kenshiBackpack2P5.AddItem(cucumber1);
+	kenshiBackpack2P5.AddItem(cucumber2);
+	kenshiBackpack2P5.AddItem(cucumber3);
+	kenshiBackpack2P5.AddItem(book1);
+	kenshiBackpack2P5.AddItem(lantern1);
+	kenshiBackpack2P5.AddItem(lantern2);
+	kenshiBackpack2P5.AddItem(smallBandage1);
+	kenshiBackpack2P5.AddItem(bounty1);
+	kenshiBackpack2P5.AddItem(bounty2);
+	kenshiBackpack2P5.SortInventory();
+	//kenshiBackpack2P5.DisplayDecisionChart();
+	kenshiBackpack2P5.PrintBackpackStats();
+	kenshiBackpack2P5.DisplayInv();
+
+	std::cout << "\nKenshi full backpack example 2.6, attempting to isolate issue \n\n";
+	Backpack kenshiBackpack2P6 = Backpack(10, 4);
+	kenshiBackpack2P6.AddItem(largeBackpack1);
+	kenshiBackpack2P6.AddItem(largeMedkit1);
+	kenshiBackpack2P6.AddItem(cucumber1);
+	kenshiBackpack2P6.AddItem(smallBandage1);
+	kenshiBackpack2P6.AddItem(book1);
+	kenshiBackpack2P6.AddItem(bounty1);
+	kenshiBackpack2P6.AddItem(bounty2);
+	kenshiBackpack2P6.SortInventory();
+	//kenshiBackpack2P6.DisplayDecisionChart();
+	kenshiBackpack2P6.PrintBackpackStats();
+	kenshiBackpack2P6.DisplayInv();
+
+	std::cout << "\nKenshi full backpack example 2.7, attempting to isolate issue \n\n";
+	Backpack kenshiBackpack2P7 = Backpack(10, 4);
+	kenshiBackpack2P7.AddItem(plateBoots1);
+	kenshiBackpack2P7.AddItem(saw1);
+	kenshiBackpack2P7.AddItem(saw2);
+	kenshiBackpack2P7.AddItem(ironOre1);
+	kenshiBackpack2P7.AddItem(cucumber1);
+	kenshiBackpack2P7.AddItem(cucumber2);
+	kenshiBackpack2P7.AddItem(lantern1);
+	kenshiBackpack2P7.AddItem(lantern2);
+	kenshiBackpack2P7.SortInventory();
+	//kenshiBackpack2P7.DisplayDecisionChart();
+	kenshiBackpack2P7.PrintBackpackStats();
+	kenshiBackpack2P7.DisplayInv();
 
 	std::cout << "\nKenshi full backpack example 3 \n\n";
 	Backpack kenshiBackpack3 = Backpack(10, 14);

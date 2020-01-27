@@ -1,6 +1,6 @@
 ﻿  KenshiInventoryPOC.cpp
 c:\users\john russell\source\repos\kenshi-inventory-poc\kenshiinventorypoc\kenshiinventorypoc\kenshiinventorypoc.cpp(145): warning C4101: 'returnBool': unreferenced local variable
-c:\users\john russell\source\repos\kenshi-inventory-poc\kenshiinventorypoc\kenshiinventorypoc\kenshiinventorypoc.cpp(202): warning C4018: '<': signed/unsigned mismatch
-c:\users\john russell\source\repos\kenshi-inventory-poc\kenshiinventorypoc\kenshiinventorypoc\kenshiinventorypoc.cpp(304): warning C4018: '<': signed/unsigned mismatch
-c:\users\john russell\source\repos\kenshi-inventory-poc\kenshiinventorypoc\kenshiinventorypoc\kenshiinventorypoc.cpp(416): warning C4018: '<': signed/unsigned mismatch
+c:\users\john russell\source\repos\kenshi-inventory-poc\kenshiinventorypoc\kenshiinventorypoc\kenshiinventorypoc.cpp(209): warning C4018: '<': signed/unsigned mismatch
+c:\users\john russell\source\repos\kenshi-inventory-poc\kenshiinventorypoc\kenshiinventorypoc\kenshiinventorypoc.cpp(311): warning C4018: '<': signed/unsigned mismatch
+c:\users\john russell\source\repos\kenshi-inventory-poc\kenshiinventorypoc\kenshiinventorypoc\kenshiinventorypoc.cpp(423): warning C4018: '<': signed/unsigned mismatch
   KenshiInventoryPOC.vcxproj -> C:\Users\John Russell\Source\Repos\Kenshi-Inventory-POC\KenshiInventoryPOC\Debug\KenshiInventoryPOC.exe
